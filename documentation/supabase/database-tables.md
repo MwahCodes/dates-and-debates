@@ -14,9 +14,7 @@ create table public.users (
   constraint users_height_check check ((height > (0)::numeric)),
   constraint users_weight_check check ((weight > (0)::numeric))
 ) TABLESPACE pg_default;
-```
 
-```sql
 create table public.swipes (
   id uuid not null default extensions.uuid_generate_v4 (),
   swiper_id uuid null,
@@ -33,19 +31,3 @@ create table public.swipes (
     )
   )
 ) TABLESPACE pg_default;
-```
-
-```sql
-create table public.matches (
-  id uuid not null default extensions.uuid_generate_v4 (),
-  user1_id uuid null,
-  user2_id uuid null,
-  created_at timestamp with time zone null default timezone ('utc'::text, now()),
-  constraint matches_pkey primary key (id),
-  constraint matches_user1_id_user2_id_key unique (user1_id, user2_id),
-  constraint matches_user1_id_fkey foreign KEY (user1_id) references auth.users (id),
-  constraint matches_user2_id_fkey foreign KEY (user2_id) references auth.users (id)
-) TABLESPACE pg_default;
-```
-
-
