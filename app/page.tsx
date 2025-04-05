@@ -7,24 +7,24 @@ export default function Home() {
   const router = useRouter();
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-white p-8">
-      <div className="max-w-md w-full space-y-8">
-        <div className="text-center space-y-6">
-          <h1 className="text-[32px] leading-tight font-hannari">
-            <span className="text-black">Welcome to</span>
-            <div className="mt-2">
-              <span className="text-[#FF9E80]">Dates</span>
-              <span className="text-black">&</span>
-              <span className="text-[#6C0002]">Debates</span>
-            </div>
-          </h1>
-          
-          <h2 className="text-[24px] text-[#1A1A1A] leading-relaxed">
-            Please follow these house rules
-          </h2>
-        </div>
+    <div className="min-h-screen bg-white">
+      <div className="w-full pt-12 px-8">
+        <h1 className="text-[32px] leading-tight font-hannari text-center">
+          <span className="text-black">Welcome to</span>
+          <div className="mt-2">
+            <span className="text-[#FF9E80]">Dates</span>
+            <span className="text-black">&</span>
+            <span className="text-[#6C0002]">Debates</span>
+          </div>
+        </h1>
+        
+        <h2 className="text-[24px] text-[#1A1A1A] leading-relaxed text-center mt-4">
+          Please follow these house rules
+        </h2>
+      </div>
 
-        <div className="space-y-6 mt-8">
+      <div className="px-8 mt-8">
+        <div className="max-w-md mx-auto space-y-6">
           <div className="flex items-start space-x-4">
             <div className="text-[#6C0002]">✓</div>
             <div>
@@ -67,14 +67,14 @@ export default function Home() {
               </p>
             </div>
           </div>
-        </div>
 
-        <Button 
-          className="w-full bg-[#6C0002] text-white py-6 rounded-lg mt-8 text-lg hover:bg-[#8C0003] transition-colors"
-          onClick={() => router.push('/personal-info')}
-        >
-          I Agree
-        </Button>
+          <Button 
+            className="w-full bg-[#6C0002] text-white py-6 rounded-lg mt-8 text-lg hover:bg-[#8C0003] transition-colors"
+            onClick={() => router.push('/personal-info')}
+          >
+            I Agree
+          </Button>
+        </div>
       </div>
     </div>
   );

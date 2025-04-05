@@ -51,13 +51,15 @@ export default function PersonalInfo() {
   }, [dateInput]);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-white p-8">
-      <div className="max-w-md w-full space-y-8">
-        <div className="space-y-6">
-          <h1 className="text-3xl font-semibold text-center text-[#1A1A1A]">
-            Personal Information
-          </h1>
+    <div className="min-h-screen bg-white">
+      <div className="w-full pt-12 px-8">
+        <h1 className="text-3xl font-semibold text-center text-[#1A1A1A]">
+          Personal Information
+        </h1>
+      </div>
 
+      <div className="px-8 mt-8">
+        <div className="max-w-md mx-auto space-y-6">
           <div className="space-y-4">
             <div className="space-y-2">
               <label htmlFor="name" className="text-lg font-medium text-[#1A1A1A]">

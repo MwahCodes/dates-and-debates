@@ -63,67 +63,67 @@ export default function PhysicalAttributes() {
   const weightOptions = generateWeightOptions();
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-white p-8">
-      <div className="max-w-md w-full space-y-8">
-        <div className="space-y-6">
-          <h1 className="text-3xl font-semibold text-center text-[#1A1A1A]">
-            Physical Attributes
-          </h1>
+    <div className="min-h-screen bg-white">
+      <div className="w-full pt-12 px-8">
+        <h1 className="text-3xl font-semibold text-center text-[#1A1A1A]">
+          Physical Attributes
+        </h1>
+      </div>
 
-          <div className="space-y-6">
-            <div className="space-y-2">
-              <label className="text-lg font-medium text-[#1A1A1A]">
-                My education level is
-              </label>
-              <Select value={education} onValueChange={setEducation}>
-                <SelectTrigger className="w-full p-3 rounded-lg border border-[#E0E0E0] focus:border-[#6C0002] focus:ring-1 focus:ring-[#6C0002]">
-                  <SelectValue placeholder="Select your education level" />
-                </SelectTrigger>
-                <SelectContent>
-                  {educationLevels.map((level) => (
-                    <SelectItem key={level} value={level}>
-                      {level}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+      <div className="px-8 mt-8">
+        <div className="max-w-md mx-auto space-y-6">
+          <div className="space-y-2">
+            <label className="text-lg font-medium text-[#1A1A1A]">
+              My education level is
+            </label>
+            <Select value={education} onValueChange={setEducation}>
+              <SelectTrigger className="w-full p-3 rounded-lg border border-[#E0E0E0] focus:border-[#6C0002] focus:ring-1 focus:ring-[#6C0002]">
+                <SelectValue placeholder="Select your education level" />
+              </SelectTrigger>
+              <SelectContent>
+                {educationLevels.map((level) => (
+                  <SelectItem key={level} value={level}>
+                    {level}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-            <div className="space-y-2">
-              <label className="text-lg font-medium text-[#1A1A1A]">
-                My height is
-              </label>
-              <Select value={height} onValueChange={setHeight}>
-                <SelectTrigger className="w-full p-3 rounded-lg border border-[#E0E0E0] focus:border-[#6C0002] focus:ring-1 focus:ring-[#6C0002]">
-                  <SelectValue placeholder="Select your height" />
-                </SelectTrigger>
-                <SelectContent>
-                  {heightOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="space-y-2">
+            <label className="text-lg font-medium text-[#1A1A1A]">
+              My height is
+            </label>
+            <Select value={height} onValueChange={setHeight}>
+              <SelectTrigger className="w-full p-3 rounded-lg border border-[#E0E0E0] focus:border-[#6C0002] focus:ring-1 focus:ring-[#6C0002]">
+                <SelectValue placeholder="Select your height" />
+              </SelectTrigger>
+              <SelectContent>
+                {heightOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-            <div className="space-y-2">
-              <label className="text-lg font-medium text-[#1A1A1A]">
-                My weight is
-              </label>
-              <Select value={weight} onValueChange={setWeight}>
-                <SelectTrigger className="w-full p-3 rounded-lg border border-[#E0E0E0] focus:border-[#6C0002] focus:ring-1 focus:ring-[#6C0002]">
-                  <SelectValue placeholder="Select your weight" />
-                </SelectTrigger>
-                <SelectContent className="max-h-[300px]">
-                  {weightOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="space-y-2">
+            <label className="text-lg font-medium text-[#1A1A1A]">
+              My weight is
+            </label>
+            <Select value={weight} onValueChange={setWeight}>
+              <SelectTrigger className="w-full p-3 rounded-lg border border-[#E0E0E0] focus:border-[#6C0002] focus:ring-1 focus:ring-[#6C0002]">
+                <SelectValue placeholder="Select your weight" />
+              </SelectTrigger>
+              <SelectContent className="max-h-[300px]">
+                {weightOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <Button 
