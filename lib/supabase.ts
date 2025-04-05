@@ -28,8 +28,10 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       setItem: (key, value) => {
         if (typeof window !== 'undefined') {
           const date = new Date();
-          date.setTime(date.getTime() + 24 * 60 * 60 * 1000); // 24 hours
-          document.cookie = `${key}=${value}; expires=${date.toUTCString()}; path=/; SameSite=Lax`;
+          // Set cookie expiration to 30 days instead of 24 hours
+          date.setTime(date.getTime() + 30 * 24 * 60 * 60 * 1000);
+          const secureAttribute = window.location.protocol === 'https:' ? '; Secure' : '';
+          document.cookie = `${key}=${value}; expires=${date.toUTCString()}; path=/; SameSite=Lax${secureAttribute}`;
         }
       },
       removeItem: (key) => {
