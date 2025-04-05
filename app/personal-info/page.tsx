@@ -3,10 +3,13 @@
 import { useState, useEffect } from 'react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { useRouter } from 'next/navigation';
 
 export default function PersonalInfo() {
+  const router = useRouter();
   const [dateInput, setDateInput] = useState<string>('');
   const [isValidDate, setIsValidDate] = useState<boolean>(false);
+  const [name, setName] = useState<string>('');
 
   const formatDateInput = (value: string): string => {
     // Remove any non-numeric characters
@@ -62,6 +65,8 @@ export default function PersonalInfo() {
               </label>
               <Input
                 id="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
                 placeholder="Enter your name"
                 className="w-full p-3 rounded-lg border border-[#E0E0E0] focus:border-[#6C0002] focus:ring-1 focus:ring-[#6C0002]"
               />
@@ -97,7 +102,8 @@ export default function PersonalInfo() {
 
           <Button 
             className="w-full bg-[#6C0002] text-white py-6 rounded-lg mt-8 text-lg hover:bg-[#8C0003] transition-colors"
-            disabled={Boolean(dateInput) && !isValidDate}
+            disabled={!name || (Boolean(dateInput) && !isValidDate)}
+            onClick={() => router.push('/physical-attributes')}
           >
             Continue
           </Button>
