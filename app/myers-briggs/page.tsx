@@ -51,18 +51,18 @@ export default function MyersBriggs() {
   }, []);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-white p-8">
-      <div className="max-w-md w-full space-y-8">
-        <div className="space-y-6">
-          <div>
-            <h1 className="text-3xl font-semibold text-center text-[#1A1A1A]">
-              Myers Briggs test (optional)
-            </h1>
-            <p className="mt-2 text-center text-[#666666]">
-              Let everyone know what your Myers Briggs personality test.
-            </p>
-          </div>
+    <div className="min-h-screen bg-white">
+      <div className="w-full pt-12 px-8">
+        <h1 className="text-3xl font-semibold text-center text-[#1A1A1A]">
+          Myers Briggs test (optional)
+        </h1>
+        <p className="mt-2 text-center text-[#666666]">
+          Let everyone know what your Myers Briggs personality test.
+        </p>
+      </div>
 
+      <div className="px-8 mt-8">
+        <div className="max-w-md mx-auto space-y-6">
           <div className="relative dropdown-container">
             <Input
               value={searchTerm}
