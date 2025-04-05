@@ -15,6 +15,22 @@ interface UserRating {
   total_rating: number;
 }
 
+// Interface for raw data from Supabase
+interface RawUserRating {
+  id: string;
+  name: string;
+  profile_picture_url: string | null;
+  average_rating: string;
+  rating_count: string;
+  total_rating: string;
+}
+
+// For user's auth profile
+interface ExtendedUser {
+  id: string;
+  name?: string;
+}
+
 export default function LeaderboardPage() {
   const router = useRouter();
   const { user, supabase, isLoading: authLoading } = useAuth();
@@ -42,8 +58,8 @@ export default function LeaderboardPage() {
         
         // Filter out users with no ratings and convert numeric types
         const usersWithRatings = data
-          .filter(user => user.rating_count > 0)
-          .map(user => ({
+          .filter((user: RawUserRating) => parseInt(user.rating_count) > 0)
+          .map((user: RawUserRating) => ({
             ...user,
             average_rating: parseFloat(user.average_rating),
             rating_count: parseInt(user.rating_count),
@@ -53,7 +69,7 @@ export default function LeaderboardPage() {
         setLeaderboard(usersWithRatings);
         
         // Find current user's rank
-        const currentUserIndex = usersWithRatings.findIndex(u => u.id === user.id);
+        const currentUserIndex = usersWithRatings.findIndex((u: {id: string}) => u.id === user.id);
         setUserRank(currentUserIndex !== -1 ? currentUserIndex + 1 : null);
         
       } catch (error) {
@@ -227,24 +243,31 @@ export default function LeaderboardPage() {
             {userRank && userRank > 10 && (
               <div className="flex items-center py-3 px-4 bg-red-50">
                 <div className="w-8 text-2xl font-bold mr-2 text-center text-gray-500">{userRank}</div>
-                <div className="relative w-12 h-12 rounded-full overflow-hidden mx-2">
-                  {user?.profile_picture_url ? (
-                    <Image
-                      src={user.profile_picture_url}
-                      alt={user.name || 'You'}
-                      fill
-                      className="object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-[#6C0002] text-white">
-                      {user?.name ? getInitials(user.name) : 'Y'}
-                    </div>
-                  )}
-                </div>
-                <div className="flex-1 ml-1">
-                  <div className="font-semibold">You</div>
-                </div>
-                <div className="text-xl font-bold ml-2">{leaderboard.find(u => u.id === user?.id)?.total_rating || 0}</div>
+                {(() => {
+                  const currentUserData = leaderboard.find((u) => u.id === user?.id);
+                  return (
+                    <>
+                      <div className="relative w-12 h-12 rounded-full overflow-hidden mx-2">
+                        {currentUserData?.profile_picture_url ? (
+                          <Image
+                            src={currentUserData.profile_picture_url}
+                            alt={'You'}
+                            fill
+                            className="object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-[#6C0002] text-white">
+                            {currentUserData?.name ? getInitials(currentUserData.name) : 'Y'}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 ml-1">
+                        <div className="font-semibold">You</div>
+                      </div>
+                      <div className="text-xl font-bold ml-2">{currentUserData?.total_rating || 0}</div>
+                    </>
+                  );
+                })()}
               </div>
             )}
           </div>

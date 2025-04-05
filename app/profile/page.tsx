@@ -25,6 +25,15 @@ interface UserProfile {
   total_rating?: number;
 }
 
+interface RawUserRating {
+  id: string;
+  name: string;
+  profile_picture_url: string | null;
+  average_rating: string;
+  rating_count: string;
+  total_rating: string;
+}
+
 export default function ProfilePage() {
   const { user, supabase, signOut, isLoading: authLoading } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -75,9 +84,10 @@ export default function ProfilePage() {
 
         if (!ratingError && ratingData) {
           // Combine profile data with rating data
-          data.average_rating = parseFloat(ratingData.average_rating);
-          data.rating_count = parseInt(ratingData.rating_count);
-          data.total_rating = parseInt(ratingData.total_rating);
+          const typedRatingData = ratingData as RawUserRating;
+          data.average_rating = parseFloat(typedRatingData.average_rating);
+          data.rating_count = parseInt(typedRatingData.rating_count);
+          data.total_rating = parseInt(typedRatingData.total_rating);
         }
 
         console.log('Profile data retrieved:', data);
