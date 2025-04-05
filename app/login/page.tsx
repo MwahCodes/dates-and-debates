@@ -49,23 +49,24 @@ export default function LoginPage() {
         if (userError.code === 'PGRST116') {
           // No user exists in the users table, redirect to profile setup
           toast.info('Please complete your profile setup');
-          router.push('/profile-setup');
+          router.push(`/profile-setup?userId=${authData.user.id}`);
           return;
         }
         
         throw new Error('Error fetching user data');
       }
 
-      if (!userData) {
-        // No user exists in the users table, redirect to profile setup
-        toast.info('Please complete your profile setup');
-        router.push('/profile-setup');
+      // Step 3: Check if user has completed their profile
+      if (!userData.name || !userData.birthday) {
+        // User exists but profile is incomplete
+        toast.info('Please complete your profile information');
+        router.push(`/profile-setup?userId=${authData.user.id}`);
         return;
       }
 
-      // Step 3: Successful login with user data
+      // Step 4: Successful login with complete profile
       toast.success('Successfully signed in');
-      router.push('/home');
+      router.push(`/home?userId=${authData.user.id}`);
       
     } catch (err) {
       console.error('Login error:', err);

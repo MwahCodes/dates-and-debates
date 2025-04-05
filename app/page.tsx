@@ -2,9 +2,37 @@
 
 import { Button } from "@/components/ui/button";
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
+import { useEffect } from 'react';
 
 export default function WelcomePage() {
   const router = useRouter();
+  const { user, supabase } = useAuth();
+
+  const handleAgree = async () => {
+    if (user) {
+      // Check if user has a profile
+      const { data: userData, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (error || !userData) {
+        // No profile exists, redirect to profile setup
+        router.push(`/profile-setup?userId=${user.id}`);
+      } else if (!userData.name || !userData.birthday) {
+        // Profile exists but is incomplete
+        router.push(`/profile-setup?userId=${user.id}`);
+      } else {
+        // Profile is complete, go to home
+        router.push('/home');
+      }
+    } else {
+      // Not authenticated, go to login
+      router.push('/login');
+    }
+  };
 
   return (
     <div className="min-h-screen bg-white">
@@ -70,7 +98,7 @@ export default function WelcomePage() {
 
           <Button 
             className="w-full bg-[#6C0002] text-white py-6 rounded-lg mt-8 text-lg hover:bg-[#8C0003] transition-colors"
-            onClick={() => router.push('/login')}
+            onClick={handleAgree}
           >
             I Agree
           </Button>
