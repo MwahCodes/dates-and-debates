@@ -132,7 +132,7 @@ export default function HomePage() {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F5F5F5]">
+      <div className="fixed inset-0 bg-[#F5F5F5] flex items-center justify-center">
         <div className="animate-pulse text-[#666666]">Loading profiles...</div>
       </div>
     );
@@ -140,7 +140,7 @@ export default function HomePage() {
 
   if (users.length === 0 || currentIndex >= users.length) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F5F5F5] px-4">
+      <div className="fixed inset-0 bg-[#F5F5F5] flex items-center justify-center px-4">
         <Card className="w-full max-w-sm">
           <CardHeader>
             <CardTitle className="text-center text-[20px] leading-relaxed text-[#1A1A1A]">
@@ -162,16 +162,18 @@ export default function HomePage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F5F5F5] flex flex-col">
-      {/* Cards container with proper spacing */}
-      <div className="flex-1 flex flex-col items-center px-4 relative">
-        {/* Wrapper to position cards above buttons */}
+    <div className="fixed inset-0 bg-[#F5F5F5] flex flex-col overflow-hidden">
+      {/* Main content area */}
+      <div className="flex-1 relative">
+        {/* Cards container */}
         <div 
-          className="w-full max-w-sm absolute"
+          className="absolute left-1/2 -translate-x-1/2"
           style={{ 
-            bottom: '140px', // Position cards just above the buttons
-            left: '50%',
-            transform: 'translateX(-50%)'
+            bottom: '140px', // Position above the buttons
+            width: '100%',
+            maxWidth: '384px', // max-w-sm equivalent
+            paddingLeft: '1rem',
+            paddingRight: '1rem'
           }}
         >
           {/* Cards */}
@@ -181,7 +183,7 @@ export default function HomePage() {
                 key={user.id}
                 className="absolute w-full transition-all duration-300 ease-out"
                 style={{
-                  zIndex: 10 - index, // Lower z-index for cards
+                  zIndex: 10 - index,
                   transform: `scale(${1 - index * 0.05}) translateY(${index * 10}px)`,
                   opacity: index === 0 ? 1 : 0.8,
                   pointerEvents: index === 0 ? 'auto' : 'none',
@@ -201,10 +203,10 @@ export default function HomePage() {
 
         {/* Bottom Action Buttons */}
         <div 
-          className="fixed left-0 right-0 flex justify-center items-center space-x-8 p-4" 
+          className="absolute left-0 right-0 flex justify-center items-center space-x-8 p-4" 
           style={{ 
-            bottom: '80px', // Position above the bottom navigation
-            zIndex: 50 // Ensure buttons are above cards
+            bottom: '80px',
+            zIndex: 50
           }}
         >
           <button

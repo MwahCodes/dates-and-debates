@@ -18,6 +18,15 @@ export default function SwipeableCard({ user, onSwipe }: SwipeableCardProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
 
+  // Get initials from name
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(word => word[0])
+      .join('')
+      .toUpperCase();
+  };
+
   const handleSwipe = (direction: 'left' | 'right') => {
     setIsLeaving(true);
     const targetOffset = direction === 'left' ? -window.innerWidth : window.innerWidth;
@@ -78,23 +87,36 @@ export default function SwipeableCard({ user, onSwipe }: SwipeableCardProps) {
       }}
     >
       <div className="relative w-full h-full">
-        <Image
-          src={user.profile_picture_url || '/placeholder-profile.jpg'}
-          alt={`${user.name}'s profile`}
-          fill
-          className="object-cover"
-          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-          priority
-        />
+        {user.profile_picture_url ? (
+          <Image
+            src={user.profile_picture_url}
+            alt={`${user.name}'s profile`}
+            fill
+            className="object-cover"
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            priority
+          />
+        ) : (
+          <div className="absolute inset-0 bg-[#6C0002] flex items-center justify-center">
+            <div className="text-center">
+              <div className="text-6xl font-bold text-white mb-4">{getInitials(user.name)}</div>
+              <div className="text-2xl text-white opacity-90">{user.name}</div>
+            </div>
+          </div>
+        )}
       </div>
       
-      {/* Gradient overlay */}
-      <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black/80 to-transparent" />
+      {/* Gradient overlay - only show with profile picture */}
+      {user.profile_picture_url && (
+        <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black/80 to-transparent" />
+      )}
       
-      {/* Name */}
-      <div className="absolute bottom-0 left-0 right-0 p-4">
-        <h2 className="text-2xl font-semibold text-white">{user.name}</h2>
-      </div>
+      {/* Name - only show with profile picture */}
+      {user.profile_picture_url && (
+        <div className="absolute bottom-0 left-0 right-0 p-4">
+          <h2 className="text-2xl font-semibold text-white">{user.name}</h2>
+        </div>
+      )}
 
       {/* Swipe indicators */}
       <div
