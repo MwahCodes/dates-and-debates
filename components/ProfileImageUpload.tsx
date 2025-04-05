@@ -55,32 +55,46 @@ export default function ProfileImageUpload({
       // Create a safe file name using the user's ID (not name) to ensure uniqueness and security
       const fileExt = file.name.split('.').pop();
       const fileName = `${userId}.${fileExt}`;
-      const filePath = `avatars/${fileName}`;
-
-      // Upload the file to Supabase Storage
-      const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: true // Overwrite any existing file with the same name
-        });
-
-      if (uploadError) {
-        console.error('Error uploading file:', uploadError);
-        
-        if (uploadError.message.includes('bucket') || uploadError.message.includes('does not exist')) {
-          throw new Error('The avatar storage is not configured properly. Please contact an administrator.');
-        } else if (uploadError.message.includes('permission') || uploadError.message.includes('not authorized')) {
-          throw new Error('You do not have permission to upload images. Please contact an administrator.');
+      
+      // Try with the default bucket name in Supabase
+      let uploadResult;
+      let bucketName = '';
+      
+      // Try uploading to different potential bucket names
+      const potentialBuckets = ['profile-images', 'avatars', 'profiles', 'images', 'public'];
+      
+      for (const bucket of potentialBuckets) {
+        try {
+          console.log(`Attempting upload to bucket: ${bucket}`);
+          const filePath = `${fileName}`;
+          
+          uploadResult = await supabase.storage
+            .from(bucket)
+            .upload(filePath, file, {
+              cacheControl: '3600',
+              upsert: true
+            });
+            
+          if (!uploadResult.error) {
+            bucketName = bucket;
+            console.log(`Upload successful to bucket: ${bucket}`);
+            break;
+          }
+        } catch (bucketError) {
+          console.log(`Failed upload to bucket ${bucket}:`, bucketError);
+          // Continue to try next bucket
         }
-        
-        throw uploadError;
+      }
+      
+      if (!bucketName || !uploadResult || uploadResult.error) {
+        console.error('Failed to upload to any bucket:', uploadResult?.error);
+        throw new Error('Could not upload image to storage. Please try again later.');
       }
 
       // Get the public URL for the uploaded file
       const { data: publicUrlData } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(filePath);
+        .from(bucketName)
+        .getPublicUrl(fileName);
 
       if (!publicUrlData?.publicUrl) {
         throw new Error('Failed to get public URL for uploaded image');
