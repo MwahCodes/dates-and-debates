@@ -7,13 +7,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
 export default function AuthPage() {
-  const [isSignIn, setIsSignIn] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-  const { signIn, signUp } = useAuth();
+  const { signIn } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,11 +20,7 @@ export default function AuthPage() {
     setIsLoading(true);
 
     try {
-      if (isSignIn) {
-        await signIn(email, password);
-      } else {
-        await signUp(email, password);
-      }
+      await signIn(email, password);
       router.push('/home');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
@@ -38,7 +33,7 @@ export default function AuthPage() {
     <div className="min-h-screen bg-white">
       <div className="w-full pt-12 px-8">
         <h1 className="text-3xl font-semibold text-center text-[#1A1A1A]">
-          {isSignIn ? 'Sign in to your account' : 'Create your account'}
+          Sign in to your account
         </h1>
       </div>
 
@@ -52,13 +47,11 @@ export default function AuthPage() {
                 </label>
                 <Input
                   id="email"
-                  name="email"
                   type="email"
-                  autoComplete="email"
                   required
-                  placeholder="Enter your email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Enter your email"
                   className="w-full p-3 rounded-lg border border-[#E0E0E0] focus:border-[#6C0002] focus:ring-1 focus:ring-[#6C0002]"
                 />
               </div>
@@ -69,13 +62,11 @@ export default function AuthPage() {
                 </label>
                 <Input
                   id="password"
-                  name="password"
                   type="password"
-                  autoComplete={isSignIn ? 'current-password' : 'new-password'}
                   required
-                  placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter your password"
                   className="w-full p-3 rounded-lg border border-[#E0E0E0] focus:border-[#6C0002] focus:ring-1 focus:ring-[#6C0002]"
                 />
               </div>
@@ -91,20 +82,16 @@ export default function AuthPage() {
                 className="w-full bg-[#6C0002] text-white py-6 rounded-lg text-lg hover:bg-[#8C0003] transition-colors"
                 disabled={isLoading}
               >
-                {isLoading 
-                  ? (isSignIn ? 'Signing in...' : 'Creating account...')
-                  : (isSignIn ? 'Sign in' : 'Sign up')}
+                {isLoading ? 'Signing in...' : 'Sign in'}
               </Button>
 
               <div className="text-center">
                 <button
                   type="button"
-                  onClick={() => setIsSignIn(!isSignIn)}
+                  onClick={() => router.push('/signup')}
                   className="text-[#666666] hover:text-[#6C0002] transition-colors"
                 >
-                  {isSignIn 
-                    ? "Don't have an account? Sign up"
-                    : 'Already have an account? Sign in'}
+                  Don't have an account? Sign up
                 </button>
               </div>
             </div>

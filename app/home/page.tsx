@@ -43,11 +43,17 @@ export default function HomePage() {
         const swipedIds = swipedUsers?.map(swipe => swipe.swiped_id) || [];
 
         // Get users to show (excluding current user and already swiped users)
-        const { data, error: supabaseError } = await supabase
+        let query = supabase
           .from('users')
           .select('id, name, profile_picture_url')
-          .not('id', 'in', [...swipedIds, user.id])
-          .limit(10);
+          .not('id', 'eq', user.id);  // First exclude the current user
+
+        // Only apply the not-in filter if there are swiped IDs
+        if (swipedIds.length > 0) {
+          query = query.not('id', 'in', swipedIds);
+        }
+
+        const { data, error: supabaseError } = await query.limit(10);
 
         console.log('Query result:', { data, error: supabaseError });
         setDebugInfo({ 
