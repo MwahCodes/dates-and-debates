@@ -1,4 +1,11 @@
+'use client';
+
+import { Button } from "@/components/ui/button";
+import { useRouter } from 'next/navigation';
+
 export default function Home() {
+  const router = useRouter();
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-white p-8">
       <div className="max-w-md w-full space-y-8">
@@ -62,9 +69,12 @@ export default function Home() {
           </div>
         </div>
 
-        <button className="w-full bg-[#6C0002] text-white py-4 rounded-lg mt-8 text-[18px] hover:bg-[#8C0003] transition-colors">
+        <Button 
+          className="w-full bg-[#6C0002] text-white py-6 rounded-lg mt-8 text-lg hover:bg-[#8C0003] transition-colors"
+          onClick={() => router.push('/personal-info')}
+        >
           I Agree
-        </button>
+        </Button>
       </div>
     </div>
   );
