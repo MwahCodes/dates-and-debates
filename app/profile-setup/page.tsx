@@ -12,8 +12,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 
 export default function ProfileSetupPage() {
@@ -88,15 +86,18 @@ export default function ProfileSetupPage() {
   };
 
   return (
-    <div className="container max-w-2xl mx-auto px-4 py-8">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-2xl font-bold text-center">Complete Your Profile</CardTitle>
-        </CardHeader>
-        <CardContent>
+    <div className="min-h-screen bg-white">
+      <div className="w-full pt-12 px-8">
+        <h1 className="text-3xl font-semibold text-center text-[#1A1A1A]">
+          Complete Your Profile
+        </h1>
+      </div>
+
+      <div className="px-8 mt-8">
+        <div className="max-w-md mx-auto space-y-6">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="name">Full Name</Label>
+              <h2 className="text-xl text-[#1A1A1A]">My name is</h2>
               <Input
                 id="name"
                 name="name"
@@ -104,11 +105,12 @@ export default function ProfileSetupPage() {
                 onChange={handleChange}
                 placeholder="Enter your full name"
                 required
+                className="bg-[#F5F5F5] border-0 text-[#1A1A1A] placeholder:text-[#666666] h-14 text-lg"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="birthday">Birthday</Label>
+              <h2 className="text-xl text-[#1A1A1A]">My birthday is</h2>
               <Input
                 id="birthday"
                 name="birthday"
@@ -116,13 +118,14 @@ export default function ProfileSetupPage() {
                 value={formData.birthday}
                 onChange={handleChange}
                 required
+                className="bg-[#F5F5F5] border-0 text-[#1A1A1A] placeholder:text-[#666666] h-14 text-lg"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="education_level">Education Level</Label>
+              <h2 className="text-xl text-[#1A1A1A]">My education level is</h2>
               <Select value={formData.education_level} onValueChange={handleSelectChange}>
-                <SelectTrigger>
+                <SelectTrigger className="bg-[#F5F5F5] border-0 text-[#1A1A1A] h-14 text-lg">
                   <SelectValue placeholder="Select education level" />
                 </SelectTrigger>
                 <SelectContent>
@@ -136,7 +139,7 @@ export default function ProfileSetupPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="height">Height (inches)</Label>
+              <h2 className="text-xl text-[#1A1A1A]">My height is</h2>
               <Input
                 id="height"
                 name="height"
@@ -147,11 +150,12 @@ export default function ProfileSetupPage() {
                 required
                 min="0"
                 step="0.1"
+                className="bg-[#F5F5F5] border-0 text-[#1A1A1A] placeholder:text-[#666666] h-14 text-lg"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="weight">Weight (lbs)</Label>
+              <h2 className="text-xl text-[#1A1A1A]">My weight is</h2>
               <Input
                 id="weight"
                 name="weight"
@@ -162,11 +166,12 @@ export default function ProfileSetupPage() {
                 required
                 min="0"
                 step="0.1"
+                className="bg-[#F5F5F5] border-0 text-[#1A1A1A] placeholder:text-[#666666] h-14 text-lg"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="mbti_type">MBTI Type (Optional)</Label>
+              <h2 className="text-xl text-[#1A1A1A]">My MBTI type is</h2>
               <Input
                 id="mbti_type"
                 name="mbti_type"
@@ -174,19 +179,20 @@ export default function ProfileSetupPage() {
                 onChange={handleChange}
                 placeholder="e.g., INTJ"
                 maxLength={4}
+                className="bg-[#F5F5F5] border-0 text-[#1A1A1A] placeholder:text-[#666666] h-14 text-lg"
               />
             </div>
 
             <Button
               type="submit"
-              className="w-full"
+              className="w-full bg-[#6C0002] text-white h-14 text-lg hover:bg-[#8C0003] mt-8"
               disabled={loading}
             >
               {loading ? 'Creating Profile...' : 'Complete Profile'}
             </Button>
           </form>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 } 

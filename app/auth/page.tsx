@@ -5,8 +5,6 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 
 export default function AuthPage() {
@@ -57,15 +55,18 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="container max-w-md mx-auto px-4 py-8">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-2xl font-bold text-center">Sign in to your account</CardTitle>
-        </CardHeader>
-        <CardContent>
+    <div className="min-h-screen bg-white">
+      <div className="w-full pt-12 px-8">
+        <h1 className="text-3xl font-semibold text-center text-[#1A1A1A]">
+          Sign in to your account
+        </h1>
+      </div>
+
+      <div className="px-8 mt-8">
+        <div className="max-w-md mx-auto space-y-6">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <h2 className="text-xl text-[#1A1A1A]">My email is</h2>
               <Input
                 id="email"
                 type="email"
@@ -73,11 +74,12 @@ export default function AuthPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Enter your email"
                 required
+                className="bg-[#F5F5F5] border-0 text-[#1A1A1A] placeholder:text-[#666666] h-14 text-lg"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <h2 className="text-xl text-[#1A1A1A]">My password is</h2>
               <Input
                 id="password"
                 type="password"
@@ -85,19 +87,20 @@ export default function AuthPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter your password"
                 required
+                className="bg-[#F5F5F5] border-0 text-[#1A1A1A] placeholder:text-[#666666] h-14 text-lg"
               />
             </div>
 
             <Button
               type="submit"
-              className="w-full"
+              className="w-full bg-[#6C0002] text-white h-14 text-lg hover:bg-[#8C0003] mt-8"
               disabled={loading}
             >
               {loading ? 'Signing in...' : 'Sign in'}
             </Button>
           </form>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 } 
