@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useSwipeable } from 'react-swipeable';
+import Image from 'next/image';
 
 interface SwipeableCardProps {
   name: string;
@@ -52,11 +53,16 @@ export default function SwipeableCard({ name, imageUrl, onSwipeLeft, onSwipeRigh
         transition: isDragging ? 'none' : 'all 0.3s ease-out',
       }}
     >
-      <img
-        src={imageUrl || '/placeholder-profile.jpg'}
-        alt={`${name}'s profile`}
-        className="w-full h-full object-cover"
-      />
+      <div className="relative w-full h-full">
+        <Image
+          src={imageUrl || '/placeholder-profile.jpg'}
+          alt={`${name}'s profile`}
+          fill
+          className="object-cover"
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+          priority
+        />
+      </div>
       
       {/* Gradient overlay */}
       <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black/80 to-transparent" />

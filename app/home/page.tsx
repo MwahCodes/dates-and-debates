@@ -10,10 +10,20 @@ type UserData = {
   profile_picture_url: string | null;
 };
 
+interface DebugInfo {
+  type: 'query_result' | 'connection_error' | 'unexpected_error';
+  data?: UserData[];
+  error?: {
+    message: string;
+    details?: string;
+    hint?: string;
+  };
+}
+
 export default function HomePage() {
   const [users, setUsers] = useState<UserData[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [debugInfo, setDebugInfo] = useState<any>(null);
+  const [debugInfo, setDebugInfo] = useState<DebugInfo | null>(null);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -23,10 +33,14 @@ export default function HomePage() {
         const { data, error: supabaseError } = await supabase
           .from('users')
           .select('name, profile_picture_url')
-          .limit(10); // Get multiple users for swiping
+          .limit(10);
 
         console.log('Query result:', { data, error: supabaseError });
-        setDebugInfo({ type: 'query_result', data, error: supabaseError });
+        setDebugInfo({ 
+          type: 'query_result', 
+          data: data || undefined,
+          error: supabaseError || undefined
+        });
 
         if (supabaseError) {
           console.error('Supabase error:', supabaseError);
@@ -43,9 +57,15 @@ export default function HomePage() {
         setUsers(data);
         console.log('Successfully fetched users:', data);
       } catch (err) {
-        console.error('Unexpected error:', err);
+        const error = err as Error;
+        console.error('Unexpected error:', error);
         setError('An unexpected error occurred');
-        setDebugInfo({ type: 'unexpected_error', error: err });
+        setDebugInfo({ 
+          type: 'unexpected_error',
+          error: {
+            message: error.message
+          }
+        });
       }
     };
 
