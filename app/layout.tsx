@@ -3,6 +3,7 @@
 import { Inter } from "next/font/google";
 import "./globals.css";
 import LogoHeader from "@/components/LogoHeader";
+import BottomNavigation from "@/components/BottomNavigation";
 import { usePathname } from 'next/navigation';
 
 const inter = Inter({ subsets: ["latin"] });
@@ -23,6 +24,7 @@ export default function RootLayout({
           <main className={`flex-1 ${!isRootPage ? 'pt-16 pb-20' : ''}`}>
             {children}
           </main>
+          {!isRootPage && <BottomNavigation />}
         </div>
       </body>
     </html>
