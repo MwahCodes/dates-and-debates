@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { useSwipeable } from 'react-swipeable';
-import { motion, AnimatePresence } from 'framer-motion';
 
 interface SwipeableCardProps {
   name: string;
@@ -44,16 +43,14 @@ export default function SwipeableCard({ name, imageUrl, onSwipeLeft, onSwipeRigh
     trackTouch: true,
   });
 
-  const cardStyle = {
-    transform: `translateX(${offset}px) rotate(${offset * 0.1}deg)`,
-    transition: isDragging ? 'none' : 'transform 0.5s ease-out',
-  };
-
   return (
     <div
       {...handlers}
-      className="relative w-full max-w-sm aspect-[4/5] rounded-xl overflow-hidden shadow-lg"
-      style={cardStyle}
+      className="relative w-full max-w-sm aspect-[4/5] rounded-xl overflow-hidden shadow-lg transition-transform duration-300 ease-out"
+      style={{
+        transform: `translateX(${offset}px) rotate(${offset * 0.1}deg)`,
+        transition: isDragging ? 'none' : 'all 0.3s ease-out',
+      }}
     >
       <img
         src={imageUrl || '/placeholder-profile.jpg'}
