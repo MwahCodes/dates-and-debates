@@ -77,7 +77,7 @@ export default function PhysicalAttributes() {
               My education level is
             </label>
             <Select value={education} onValueChange={setEducation}>
-              <SelectTrigger className="w-full p-3 rounded-lg border border-[#E0E0E0] focus:border-[#6C0002] focus:ring-1 focus:ring-[#6C0002]">
+              <SelectTrigger>
                 <SelectValue placeholder="Select your education level" />
               </SelectTrigger>
               <SelectContent>
@@ -95,7 +95,7 @@ export default function PhysicalAttributes() {
               My height is
             </label>
             <Select value={height} onValueChange={setHeight}>
-              <SelectTrigger className="w-full p-3 rounded-lg border border-[#E0E0E0] focus:border-[#6C0002] focus:ring-1 focus:ring-[#6C0002]">
+              <SelectTrigger>
                 <SelectValue placeholder="Select your height" />
               </SelectTrigger>
               <SelectContent>
@@ -113,7 +113,7 @@ export default function PhysicalAttributes() {
               My weight is
             </label>
             <Select value={weight} onValueChange={setWeight}>
-              <SelectTrigger className="w-full p-3 rounded-lg border border-[#E0E0E0] focus:border-[#6C0002] focus:ring-1 focus:ring-[#6C0002]">
+              <SelectTrigger>
                 <SelectValue placeholder="Select your weight" />
               </SelectTrigger>
               <SelectContent className="max-h-[300px]">
