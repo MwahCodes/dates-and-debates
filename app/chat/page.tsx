@@ -128,7 +128,7 @@ export default function ChatPage() {
 
   if (isLoading) {
     return (
-      <div className="fixed inset-0 bg-[#F5F5F5] flex items-center justify-center">
+      <div className="h-screen bg-[#F5F5F5] flex items-center justify-center">
         <div className="animate-pulse text-[#666666]">Loading chats...</div>
       </div>
     );
@@ -136,11 +136,11 @@ export default function ChatPage() {
 
   if (chatPartners.length === 0) {
     return (
-      <div className="fixed inset-0 bg-[#F5F5F5] flex items-center justify-center p-4">
+      <div className="h-screen bg-[#F5F5F5] flex items-center justify-center p-4">
         <Card className="p-6 text-center max-w-sm w-full">
           <h2 className="text-xl font-semibold mb-2">No matches yet</h2>
           <p className="text-[#666666]">
-            When you&apos;ll be able to chat with them here.
+            When you match with people, you&apos;ll be able to chat with them here.
           </p>
         </Card>
       </div>
@@ -148,8 +148,8 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="fixed inset-0 bg-[#F5F5F5] overflow-y-auto">
-      <div className="max-w-lg mx-auto p-4">
+    <div className="h-screen pt-16 bg-[#F5F5F5] overflow-y-auto">
+      <div className="max-w-lg mx-auto p-4 pb-20">
         <h1 className="text-2xl font-semibold mb-6">Messages</h1>
         <div className="space-y-4">
           {chatPartners.map((partner) => (

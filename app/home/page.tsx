@@ -152,7 +152,7 @@ export default function HomePage() {
 
   if (isLoading) {
     return (
-      <div className="fixed inset-0 bg-[#F5F5F5] flex items-center justify-center">
+      <div className="h-screen bg-[#F5F5F5] flex items-center justify-center">
         <div className="animate-pulse text-[#666666]">Loading profiles...</div>
       </div>
     );
@@ -160,7 +160,7 @@ export default function HomePage() {
 
   if (users.length === 0 || currentIndex >= users.length) {
     return (
-      <div className="fixed inset-0 bg-[#F5F5F5] flex items-center justify-center px-4">
+      <div className="h-screen bg-[#F5F5F5] flex items-center justify-center px-4">
         <Card className="w-full max-w-sm">
           <CardHeader>
             <CardTitle className="text-center text-[20px] leading-relaxed text-[#1A1A1A]">
@@ -182,26 +182,24 @@ export default function HomePage() {
   }
 
   return (
-    <div className="fixed inset-0 bg-[#F5F5F5] flex flex-col overflow-hidden">
-      {/* Main content area */}
-      <div className="flex-1 relative">
-        {/* Cards container */}
+    <div className="h-screen pt-16 bg-[#F5F5F5] flex flex-col overflow-hidden">
+      {/* Main content area - using flex to prevent scroll */}
+      <div className="flex-1 relative flex flex-col items-center justify-center overflow-hidden">
+        {/* Cards container - positioned from top to eliminate space */}
         <div 
-          className="absolute left-1/2 -translate-x-1/2"
+          className="absolute left-1/2 w-full max-w-[384px] px-4 overflow-hidden"
           style={{ 
-            bottom: '140px', // Position above the buttons
-            width: '100%',
-            maxWidth: '384px', // max-w-sm equivalent
-            paddingLeft: '1rem',
-            paddingRight: '1rem'
+            top: '16px', // Position from top with minimal space
+            transform: 'translateX(-50%)',
+            height: '60vh', // Maintain the same height
           }}
         >
-          {/* Cards */}
-          <div className="relative" style={{ height: '500px' }}>
+          {/* Cards - fixed height */}
+          <div className="relative h-full w-full overflow-hidden">
             {users.slice(currentIndex, currentIndex + 3).map((user, index) => (
               <div
                 key={user.id}
-                className="absolute w-full transition-all duration-300 ease-out"
+                className="absolute w-full h-full transition-all duration-300 ease-out touch-none"
                 style={{
                   zIndex: 10 - index,
                   transform: `scale(${1 - index * 0.05}) translateY(${index * 10}px)`,
@@ -209,7 +207,8 @@ export default function HomePage() {
                   pointerEvents: index === 0 ? 'auto' : 'none',
                   left: 0,
                   right: 0,
-                  bottom: 0
+                  bottom: 0,
+                  top: 0
                 }}
               >
                 <SwipeableCard
@@ -221,11 +220,11 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Bottom Action Buttons */}
+        {/* Bottom Action Buttons - fixed position */}
         <div 
           className="absolute left-0 right-0 flex justify-center items-center space-x-8 p-4" 
           style={{ 
-            bottom: '80px',
+            bottom: '120px',
             zIndex: 50
           }}
         >

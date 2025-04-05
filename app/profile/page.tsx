@@ -7,6 +7,7 @@ import Image from 'next/image';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
+import ProfileImageUpload from '@/components/ProfileImageUpload';
 
 interface UserProfile {
   id: string;
@@ -104,9 +105,47 @@ export default function ProfilePage() {
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'Not provided';
     try {
-      return format(new Date(dateString), 'MMMM d, yyyy');
+      // Parse the ISO date string directly without timezone adjustments
+      const dateParts = dateString.split('T')[0].split('-');
+      const year = parseInt(dateParts[0]);
+      const month = parseInt(dateParts[1]) - 1; // JavaScript months are 0-indexed
+      const day = parseInt(dateParts[2]);
+      
+      // Create date using local values to avoid timezone shifts
+      const date = new Date(year, month, day);
+      return format(date, 'MMMM d, yyyy');
     } catch (error) {
+      console.error('Date formatting error:', error);
       return 'Invalid date';
+    }
+  };
+
+  // Format height as feet and inches 
+  const formatHeight = (height?: number) => {
+    if (!height) return 'Not provided';
+    
+    // If height is stored as decimal (e.g., 5.5 for 5'5")
+    const feet = Math.floor(height);
+    const inches = Math.round((height - feet) * 10); // e.g., 0.5 -> 5
+    
+    return `${feet}ft ${inches} inches`;
+  };
+
+  // Format weight in lbs
+  const formatWeight = (weight?: number) => {
+    if (!weight) return 'Not provided';
+    
+    // Simply display the weight as lbs since it's already stored that way
+    return `${weight} lbs`;
+  };
+
+  // Handle image update
+  const handleImageUpdated = (newImageUrl: string) => {
+    if (profile) {
+      setProfile({
+        ...profile,
+        profile_picture_url: newImageUrl
+      });
     }
   };
 
@@ -117,20 +156,12 @@ export default function ProfilePage() {
         <div className="bg-white rounded-lg p-6 shadow-sm">
           {/* Profile header */}
           <div className="flex items-center space-x-4">
-            <div className="relative w-20 h-20 rounded-full overflow-hidden bg-gray-200">
-              {profile.profile_picture_url ? (
-                <Image
-                  src={profile.profile_picture_url}
-                  alt={profile.name}
-                  fill
-                  className="object-cover"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center bg-[#6C0002] text-white text-2xl">
-                  {profile.name.charAt(0).toUpperCase()}
-                </div>
-              )}
-            </div>
+            <ProfileImageUpload 
+              profileImageUrl={profile.profile_picture_url || null} 
+              userName={profile.name}
+              userId={profile.id}
+              onImageUpdated={handleImageUpdated}
+            />
             <div>
               <h1 className="text-2xl font-semibold text-[#1A1A1A]">{profile.name}</h1>
               <p className="text-[#666666]">{user?.email || 'No email available'}</p>
@@ -162,14 +193,14 @@ export default function ProfilePage() {
               {profile.height && (
                 <div className="flex-1">
                   <p className="text-sm text-[#666666]">Height</p>
-                  <p className="text-[#1A1A1A]">{profile.height} cm</p>
+                  <p className="text-[#1A1A1A]">{formatHeight(profile.height)}</p>
                 </div>
               )}
               
               {profile.weight && (
                 <div className="flex-1">
                   <p className="text-sm text-[#666666]">Weight</p>
-                  <p className="text-[#1A1A1A]">{profile.weight} kg</p>
+                  <p className="text-[#1A1A1A]">{formatWeight(profile.weight)}</p>
                 </div>
               )}
             </div>
