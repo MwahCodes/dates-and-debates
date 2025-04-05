@@ -31,3 +31,32 @@ create table public.swipes (
     )
   )
 ) TABLESPACE pg_default;
+
+create trigger create_match_trigger
+after INSERT on swipes for EACH row
+execute FUNCTION create_match_from_swipes ();
+
+
+create table public.matches (
+  id uuid not null default extensions.uuid_generate_v4 (),
+  user1_id uuid not null,
+  user2_id uuid not null,
+  created_at timestamp with time zone null default now(),
+  updated_at timestamp with time zone null default now(),
+  constraint matches_pkey primary key (id),
+  constraint matches_unique_pair unique (user1_id, user2_id),
+  constraint matches_user1_id_fkey foreign KEY (user1_id) references auth.users (id),
+  constraint matches_user2_id_fkey foreign KEY (user2_id) references auth.users (id)
+) TABLESPACE pg_default;
+
+
+create table public.messages (
+  id uuid not null default extensions.uuid_generate_v4 (),
+  match_id uuid not null,
+  sender_id uuid not null,
+  content text not null,
+  created_at timestamp with time zone null default now(),
+  constraint messages_pkey primary key (id),
+  constraint messages_match_id_fkey foreign KEY (match_id) references matches (id),
+  constraint messages_sender_id_fkey foreign KEY (sender_id) references auth.users (id)
+) TABLESPACE pg_default;
