@@ -36,6 +36,7 @@ export default function ChatClient({ chatPartnerId }: ChatClientProps): ReactEle
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Function to fetch messages
@@ -106,6 +107,8 @@ export default function ChatClient({ chatPartnerId }: ChatClientProps): ReactEle
 
         // Initial fetch of messages
         await fetchMessages();
+        // Ensure we scroll to the bottom on initial load
+        setTimeout(scrollToBottom, 100);
       } catch (error) {
         console.error('Error fetching chat:', error);
         setError('Failed to load chat');
@@ -145,11 +148,17 @@ export default function ChatClient({ chatPartnerId }: ChatClientProps): ReactEle
   }, [user, chatPartnerId, supabase, router]);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+    }
   };
 
+  // Ensure we scroll to bottom whenever messages update
   useEffect(() => {
-    scrollToBottom();
+    if (messages.length > 0) {
+      // Use a small timeout to ensure the DOM has updated with new messages
+      setTimeout(scrollToBottom, 50);
+    }
   }, [messages]);
 
   const sendMessage = async () => {
@@ -237,36 +246,40 @@ export default function ChatClient({ chatPartnerId }: ChatClientProps): ReactEle
         </div>
       </div>
 
-      {/* Messages - Scrollable area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.map((message) => (
-          <div
-            key={message.id}
-            className={`flex ${message.sender_id === user.id ? 'justify-end' : 'justify-start'}`}
-          >
+      {/* Messages - Scrollable area with newest messages at the bottom */}
+      <div 
+        ref={messagesContainerRef}
+        className="flex-1 overflow-y-auto p-4 pb-24"
+      >
+        <div className="space-y-4 flex flex-col">
+          {messages.map((message) => (
             <div
-              className={`max-w-[70%] rounded-lg p-3 ${
-                message.sender_id === user.id
-                  ? 'bg-[#6C0002] text-white'
-                  : 'bg-white text-[#1A1A1A]'
-              }`}
+              key={message.id}
+              className={`flex ${message.sender_id === user.id ? 'justify-end' : 'justify-start'}`}
             >
-              <p>{message.content}</p>
-              <p className="text-xs mt-1 opacity-70">
-                {new Date(message.created_at).toLocaleTimeString([], {
-                  hour: '2-digit',
-                  minute: '2-digit'
-                })}
-              </p>
+              <div
+                className={`max-w-[70%] rounded-lg p-3 ${
+                  message.sender_id === user.id
+                    ? 'bg-[#6C0002] text-white'
+                    : 'bg-white text-[#1A1A1A]'
+                }`}
+              >
+                <p>{message.content}</p>
+                <p className="text-xs mt-1 opacity-70">
+                  {new Date(message.created_at).toLocaleTimeString([], {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })}
+                </p>
+              </div>
             </div>
-          </div>
-        ))}
-        <div ref={messagesEndRef} />
+          ))}
+        </div>
       </div>
 
-      {/* Message Input - Fixed at bottom */}
-      <div className="p-4 border-t border-[#E0E0E0] bg-white sticky bottom-0 z-10 shadow-sm">
-        <div className="flex space-x-2">
+      {/* Message Input - Fixed above bottom navbar */}
+      <div className="p-4 border-t border-[#E0E0E0] bg-white fixed bottom-14 left-0 right-0 z-20 shadow-sm">
+        <div className="flex space-x-2 max-w-lg mx-auto">
           <Input
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
