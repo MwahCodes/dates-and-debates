@@ -5,149 +5,131 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { toast } from 'sonner';
-import Image from 'next/image';
 import { ArrowLeft } from 'lucide-react';
-
-interface Match {
-  id: string;
-  user1_id: string;
-  user2_id: string;
-  created_at: string;
-  other_user: {
-    id: string;
-    name: string;
-    profile_picture_url: string | null;
-  };
-}
+import Image from 'next/image';
+import { toast } from 'sonner';
 
 interface Message {
   id: string;
-  match_id: string;
   sender_id: string;
+  receiver_id: string;
   content: string;
   created_at: string;
 }
 
-interface PageProps {
-  params: {
-    id: string;
-  };
+interface ChatPartner {
+  id: string;
+  name: string;
+  profile_picture_url: string | null;
 }
 
-export default function ChatDetailPage({ params }: PageProps) {
+export default function ChatPage({ params }: { params: { id: string } }) {
   const router = useRouter();
   const { user, supabase } = useAuth();
-  const [match, setMatch] = useState<Match | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
+  const [chatPartner, setChatPartner] = useState<ChatPartner | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  const fetchMatch = async () => {
-    if (!user) return;
-    try {
-      const { data, error } = await supabase
-        .from('matches')
-        .select(`
-          *,
-          other_user:users!matches_user2_id_fkey (
-            id,
-            name,
-            profile_picture_url
-          )
-        `)
-        .eq('id', params.id)
-        .single();
-
-      if (error) throw error;
-      setMatch(data);
-    } catch (error) {
-      console.error('Error fetching match:', error);
-      toast.error('Failed to load match details');
-      router.push('/chat');
-    }
-  };
-
-  const fetchMessages = async () => {
-    if (!params.id) return;
-    try {
-      const { data, error } = await supabase
-        .from('messages')
-        .select('*')
-        .eq('match_id', params.id)
-        .order('created_at', { ascending: true });
-
-      if (error) throw error;
-      setMessages(data || []);
-      scrollToBottom();
-    } catch (error) {
-      console.error('Error fetching messages:', error);
-      toast.error('Failed to load messages');
-    }
-  };
-
-  const subscribeToMessages = () => {
-    if (!params.id) return undefined;
-    
-    const channel = supabase
-      .channel(`match_${params.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'messages',
-          filter: `match_id=eq.${params.id}`
-        },
-        (payload) => {
-          const newMessage = payload.new as Message;
-          setMessages(prev => [...prev, newMessage]);
-          scrollToBottom();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  };
 
   useEffect(() => {
     if (!user) {
       router.push('/login');
       return;
     }
-    fetchMatch();
-  }, [user, params.id, router]);
 
-  useEffect(() => {
-    if (!match) return;
-    
-    fetchMessages();
-    const unsubscribe = subscribeToMessages();
-    
-    return () => {
-      if (unsubscribe) {
-        unsubscribe();
+    const fetchChatPartner = async () => {
+      try {
+        // Check if there's a mutual like
+        const { data: swipes, error: swipeError } = await supabase
+          .from('swipes')
+          .select('*')
+          .eq('is_like', true)
+          .or(`swiper_id.eq.${user.id},swiped_id.eq.${user.id}`);
+
+        if (swipeError) throw swipeError;
+
+        const hasMutualLike = swipes?.some(s1 => 
+          swipes.some(s2 => 
+            ((s1.swiper_id === user.id && s1.swiped_id === params.id) ||
+             (s1.swiper_id === params.id && s1.swiped_id === user.id)) &&
+            ((s2.swiper_id === user.id && s2.swiped_id === params.id) ||
+             (s2.swiper_id === params.id && s2.swiped_id === user.id))
+          )
+        );
+
+        if (!hasMutualLike) {
+          toast.error('You cannot chat with this user');
+          router.push('/chat');
+          return;
+        }
+
+        // Get chat partner details
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('id, name, profile_picture_url')
+          .eq('id', params.id)
+          .single();
+
+        if (userError) throw userError;
+        setChatPartner(userData);
+
+        // Get messages
+        const { data: messagesData, error: messagesError } = await supabase
+          .from('messages')
+          .select('*')
+          .or(`and(sender_id.eq.${user.id},receiver_id.eq.${params.id}),and(sender_id.eq.${params.id},receiver_id.eq.${user.id})`)
+          .order('created_at', { ascending: true });
+
+        if (messagesError) throw messagesError;
+        setMessages(messagesData || []);
+      } catch (error) {
+        console.error('Error fetching chat:', error);
+        toast.error('Failed to load chat');
+      } finally {
+        setIsLoading(false);
       }
     };
-  }, [match]);
+
+    fetchChatPartner();
+
+    // Subscribe to new messages
+    const channel = supabase
+      .channel('messages')
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'messages',
+        filter: `or(and(sender_id.eq.${user.id},receiver_id.eq.${params.id}),and(sender_id.eq.${params.id},receiver_id.eq.${user.id}))`
+      }, (payload) => {
+        setMessages(prev => [...prev, payload.new as Message]);
+        scrollToBottom();
+      })
+      .subscribe();
+
+    return () => {
+      channel.unsubscribe();
+    };
+  }, [user, params.id, supabase, router]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
   const sendMessage = async () => {
-    if (!newMessage.trim()) return;
+    if (!newMessage.trim() || !chatPartner) return;
 
     try {
       const { error } = await supabase
         .from('messages')
         .insert([
           {
-            match_id: params.id,
             sender_id: user?.id,
+            receiver_id: chatPartner.id,
             content: newMessage.trim()
           }
         ]);
@@ -160,49 +142,57 @@ export default function ChatDetailPage({ params }: PageProps) {
     }
   };
 
-  if (isLoading || !match) {
+  if (!user || isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-white">
+      <div className="fixed inset-0 bg-[#F5F5F5] flex items-center justify-center">
         <div className="animate-pulse text-[#666666]">Loading chat...</div>
       </div>
     );
   }
 
+  if (!chatPartner) {
+    return null;
+  }
+
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="fixed inset-0 bg-[#F5F5F5] flex flex-col">
       {/* Chat Header */}
-      <div className="flex items-center px-4 py-3 border-b border-[#E0E0E0] bg-white">
+      <div className="bg-white border-b border-[#E0E0E0] p-4 flex items-center space-x-4">
         <button
           onClick={() => router.push('/chat')}
-          className="p-2 -ml-2 text-[#666666] hover:text-[#1A1A1A]"
+          className="text-[#1A1A1A] hover:text-[#666666] transition-colors"
         >
-          <ArrowLeft size={24} />
+          <ArrowLeft className="w-6 h-6" />
         </button>
-        <div className="flex items-center space-x-3 ml-2">
-          <div className="relative w-8 h-8 rounded-full overflow-hidden">
-            <Image
-              src={match.other_user.profile_picture_url || '/placeholder-profile.jpg'}
-              alt={match.other_user.name}
-              fill
-              className="object-cover"
-            />
+        <div className="flex items-center space-x-3">
+          <div className="relative w-10 h-10 rounded-full overflow-hidden bg-gray-200">
+            {chatPartner.profile_picture_url ? (
+              <Image
+                src={chatPartner.profile_picture_url}
+                alt={chatPartner.name}
+                fill
+                className="object-cover"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center bg-[#6C0002] text-white text-xl">
+                {chatPartner.name.charAt(0)}
+              </div>
+            )}
           </div>
-          <h2 className="font-medium text-[#1A1A1A]">{match.other_user.name}</h2>
+          <h2 className="font-medium text-[#1A1A1A]">{chatPartner.name}</h2>
         </div>
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-[#F5F5F5]">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((message) => (
           <div
             key={message.id}
-            className={`flex ${
-              message.sender_id === user?.id ? 'justify-end' : 'justify-start'
-            }`}
+            className={`flex ${message.sender_id === user.id ? 'justify-end' : 'justify-start'}`}
           >
             <div
               className={`max-w-[70%] rounded-lg p-3 ${
-                message.sender_id === user?.id
+                message.sender_id === user.id
                   ? 'bg-[#6C0002] text-white'
                   : 'bg-white text-[#1A1A1A]'
               }`}

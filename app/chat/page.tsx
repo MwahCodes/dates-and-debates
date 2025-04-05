@@ -1,292 +1,197 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { toast } from 'sonner';
+import { Card } from '@/components/ui/card';
 import Image from 'next/image';
+import { formatDistanceToNow } from 'date-fns';
 
-interface Match {
+interface ChatPartner {
   id: string;
-  user1_id: string;
-  user2_id: string;
-  created_at: string;
-  other_user: {
-    id: string;
-    name: string;
-    profile_picture_url: string | null;
+  name: string;
+  profile_picture_url: string | null;
+  last_message?: {
+    content: string;
+    created_at: string;
+    is_sender: boolean;
   };
-}
-
-interface Message {
-  id: string;
-  match_id: string;
-  sender_id: string;
-  content: string;
-  created_at: string;
 }
 
 export default function ChatPage() {
   const router = useRouter();
   const { user, supabase } = useAuth();
-  const [matches, setMatches] = useState<Match[]>([]);
-  const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [newMessage, setNewMessage] = useState('');
+  const [chatPartners, setChatPartners] = useState<ChatPartner[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!user) {
       router.push('/login');
       return;
     }
-    fetchMatches();
-  }, [user, router]);
 
-  useEffect(() => {
-    if (!selectedMatch) return;
-    
-    fetchMessages();
-    const unsubscribe = subscribeToMessages();
-    
-    return () => {
-      if (unsubscribe) {
-        unsubscribe();
+    const fetchChatPartners = async () => {
+      try {
+        setIsLoading(true);
+        
+        // Get all mutual likes (matches) from swipes
+        const { data: matches, error: matchError } = await supabase
+          .from('swipes')
+          .select('swiper_id, swiped_id')
+          .eq('is_like', true)
+          .or(`swiper_id.eq.${user.id},swiped_id.eq.${user.id}`);
+
+        if (matchError) throw matchError;
+
+        // Get unique user IDs who have mutually liked each other
+        const matchedUserIds = new Set<string>();
+        matches?.forEach(match => {
+          const otherId = match.swiper_id === user.id ? match.swiped_id : match.swiper_id;
+          // Check if there's a mutual like
+          const hasMutualLike = matches.some(m => 
+            (m.swiper_id === otherId && m.swiped_id === user.id) ||
+            (m.swiped_id === otherId && m.swiper_id === user.id)
+          );
+          if (hasMutualLike) {
+            matchedUserIds.add(otherId);
+          }
+        });
+
+        if (matchedUserIds.size === 0) {
+          setChatPartners([]);
+          return;
+        }
+
+        // Get user details and last message for each match
+        const { data: users, error: userError } = await supabase
+          .from('users')
+          .select('id, name, profile_picture_url')
+          .in('id', Array.from(matchedUserIds));
+
+        if (userError) throw userError;
+
+        // Get last message for each chat partner
+        const chatPartnersWithMessages = await Promise.all(
+          users.map(async (partner) => {
+            const { data: messages } = await supabase
+              .from('messages')
+              .select('*')
+              .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
+              .or(`sender_id.eq.${partner.id},receiver_id.eq.${partner.id}`)
+              .order('created_at', { ascending: false })
+              .limit(1);
+
+            const lastMessage = messages?.[0];
+            
+            return {
+              ...partner,
+              last_message: lastMessage ? {
+                content: lastMessage.content,
+                created_at: lastMessage.created_at,
+                is_sender: lastMessage.sender_id === user.id
+              } : undefined
+            };
+          })
+        );
+
+        setChatPartners(chatPartnersWithMessages);
+      } catch (error) {
+        console.error('Error fetching chat partners:', error);
+      } finally {
+        setIsLoading(false);
       }
     };
-  }, [selectedMatch]);
 
-  const fetchMatches = async () => {
-    if (!user) return;
-    try {
-      setIsLoading(true);
-      const { data, error } = await supabase
-        .from('matches')
-        .select(`
-          *,
-          other_user:users!matches_user2_id_fkey (
-            id,
-            name,
-            profile_picture_url
-          )
-        `)
-        .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`);
+    fetchChatPartners();
 
-      if (error) throw error;
-      setMatches(data || []);
-    } catch (error) {
-      console.error('Error fetching matches:', error);
-      toast.error('Failed to load matches');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const fetchMessages = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('messages')
-        .select('*')
-        .eq('match_id', selectedMatch?.id)
-        .order('created_at', { ascending: true });
-
-      if (error) throw error;
-      setMessages(data || []);
-      scrollToBottom();
-    } catch (error) {
-      console.error('Error fetching messages:', error);
-      toast.error('Failed to load messages');
-    }
-  };
-
-  const subscribeToMessages = () => {
-    if (!selectedMatch?.id) return undefined;
-    
-    const channel = supabase
-      .channel(`match_${selectedMatch.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'messages',
-          filter: `match_id=eq.${selectedMatch.id}`
-        },
-        (payload) => {
-          const newMessage = payload.new as Message;
-          setMessages(prev => [...prev, newMessage]);
-          scrollToBottom();
-        }
-      )
+    // Subscribe to new messages
+    const messagesSubscription = supabase
+      .channel('messages')
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'messages',
+        filter: `sender_id=eq.${user.id},receiver_id=eq.${user.id}`
+      }, () => {
+        fetchChatPartners(); // Refresh the chat list when new messages arrive
+      })
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      messagesSubscription.unsubscribe();
     };
-  };
+  }, [user, supabase, router]);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  const sendMessage = async () => {
-    if (!selectedMatch || !newMessage.trim()) return;
-
-    try {
-      const { error } = await supabase
-        .from('messages')
-        .insert([
-          {
-            match_id: selectedMatch.id,
-            sender_id: user?.id,
-            content: newMessage.trim()
-          }
-        ]);
-
-      if (error) throw error;
-      setNewMessage('');
-    } catch (error) {
-      console.error('Error sending message:', error);
-      toast.error('Failed to send message');
-    }
-  };
+  if (!user) {
+    return null;
+  }
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F5F5F5]">
-        <div className="animate-pulse text-[#666666]">Loading matches...</div>
+      <div className="fixed inset-0 bg-[#F5F5F5] flex items-center justify-center">
+        <div className="animate-pulse text-[#666666]">Loading chats...</div>
+      </div>
+    );
+  }
+
+  if (chatPartners.length === 0) {
+    return (
+      <div className="fixed inset-0 bg-[#F5F5F5] flex items-center justify-center p-4">
+        <Card className="p-6 text-center max-w-sm w-full">
+          <h2 className="text-xl font-semibold mb-2">No matches yet</h2>
+          <p className="text-[#666666]">
+            When you match with someone, you'll be able to chat with them here.
+          </p>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#F5F5F5] flex">
-      {/* Matches List */}
-      <div className="w-1/3 border-r border-[#E0E0E0] bg-white">
-        <div className="p-4 border-b border-[#E0E0E0]">
-          <h1 className="text-xl font-semibold text-[#1A1A1A]">Matches</h1>
-        </div>
-        <div className="overflow-y-auto h-[calc(100vh-64px)]">
-          {matches.map((match) => (
-            <div
-              key={match.id}
-              className={`p-4 border-b border-[#E0E0E0] cursor-pointer hover:bg-[#F5F5F5] ${
-                selectedMatch?.id === match.id ? 'bg-[#F5F5F5]' : ''
-              }`}
-              onClick={() => setSelectedMatch(match)}
+    <div className="fixed inset-0 bg-[#F5F5F5] overflow-y-auto">
+      <div className="max-w-lg mx-auto p-4">
+        <h1 className="text-2xl font-semibold mb-6">Messages</h1>
+        <div className="space-y-4">
+          {chatPartners.map((partner) => (
+            <Card
+              key={partner.id}
+              className="p-4 cursor-pointer hover:bg-gray-50 transition-colors"
+              onClick={() => router.push(`/chat/${partner.id}`)}
             >
-              <div className="flex items-center space-x-3">
-                <div className="relative w-12 h-12 rounded-full overflow-hidden">
-                  <Image
-                    src={match.other_user.profile_picture_url || '/placeholder-profile.jpg'}
-                    alt={match.other_user.name}
-                    fill
-                    className="object-cover"
-                  />
+              <div className="flex items-center space-x-4">
+                <div className="relative w-12 h-12 rounded-full overflow-hidden bg-gray-200">
+                  {partner.profile_picture_url ? (
+                    <Image
+                      src={partner.profile_picture_url}
+                      alt={partner.name}
+                      fill
+                      className="object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-[#6C0002] text-white text-xl">
+                      {partner.name.charAt(0)}
+                    </div>
+                  )}
                 </div>
-                <div>
-                  <h2 className="font-medium text-[#1A1A1A]">{match.other_user.name}</h2>
-                  <p className="text-sm text-[#666666]">
-                    Matched {new Date(match.created_at).toLocaleDateString()}
-                  </p>
+                <div className="flex-1 min-w-0">
+                  <div className="flex justify-between items-start">
+                    <h3 className="text-lg font-semibold truncate">{partner.name}</h3>
+                    {partner.last_message && (
+                      <span className="text-xs text-gray-500">
+                        {formatDistanceToNow(new Date(partner.last_message.created_at), { addSuffix: true })}
+                      </span>
+                    )}
+                  </div>
+                  {partner.last_message && (
+                    <p className="text-gray-600 truncate">
+                      {partner.last_message.is_sender ? 'You: ' : ''}{partner.last_message.content}
+                    </p>
+                  )}
                 </div>
               </div>
-            </div>
+            </Card>
           ))}
         </div>
-      </div>
-
-      {/* Chat Area */}
-      <div className="flex-1 flex flex-col">
-        {selectedMatch ? (
-          <>
-            {/* Chat Header */}
-            <div className="p-4 border-b border-[#E0E0E0] bg-white">
-              <div className="flex items-center space-x-3">
-                <div className="relative w-10 h-10 rounded-full overflow-hidden">
-                  <Image
-                    src={selectedMatch.other_user.profile_picture_url || '/placeholder-profile.jpg'}
-                    alt={selectedMatch.other_user.name}
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-                <h2 className="font-medium text-[#1A1A1A]">{selectedMatch.other_user.name}</h2>
-              </div>
-            </div>
-
-            {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              {messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={`flex ${
-                    message.sender_id === user?.id ? 'justify-end' : 'justify-start'
-                  }`}
-                >
-                  <div
-                    className={`max-w-[70%] rounded-lg p-3 ${
-                      message.sender_id === user?.id
-                        ? 'bg-[#6C0002] text-white'
-                        : 'bg-white text-[#1A1A1A]'
-                    }`}
-                  >
-                    <p>{message.content}</p>
-                    <p className="text-xs mt-1 opacity-70">
-                      {new Date(message.created_at).toLocaleTimeString([], {
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
-                    </p>
-                  </div>
-                </div>
-              ))}
-              <div ref={messagesEndRef} />
-            </div>
-
-            {/* Message Input */}
-            <div className="p-4 border-t border-[#E0E0E0] bg-white">
-              <div className="flex space-x-2">
-                <Input
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  placeholder="Type a message..."
-                  className="flex-1"
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter') {
-                      sendMessage();
-                    }
-                  }}
-                />
-                <Button
-                  onClick={sendMessage}
-                  className="bg-[#6C0002] text-white hover:bg-[#8C0003]"
-                >
-                  Send
-                </Button>
-              </div>
-            </div>
-          </>
-        ) : (
-          <div className="flex-1 flex items-center justify-center">
-            <Card className="w-full max-w-sm">
-              <CardHeader>
-                <CardTitle className="text-center text-[20px] leading-relaxed text-[#1A1A1A]">
-                  Select a match to start chatting
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="text-center">
-                <p className="text-[14px] text-[#666666]">
-                  Choose a match from the list to begin your conversation
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-        )}
       </div>
     </div>
   );
