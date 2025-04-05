@@ -36,6 +36,31 @@ export default function ChatClient({ chatPartnerId }: ChatClientProps): ReactEle
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Function to fetch messages
+  const fetchMessages = async () => {
+    if (!user) return;
+    
+    try {
+      const { data: messagesData, error: messagesError } = await supabase
+        .from('messages')
+        .select('*')
+        .or(`and(sender_id.eq.${user.id},receiver_id.eq.${chatPartnerId}),and(sender_id.eq.${chatPartnerId},receiver_id.eq.${user.id})`)
+        .order('created_at', { ascending: true });
+
+      if (messagesError) throw messagesError;
+      
+      // Only update if there are new messages to avoid unnecessary re-renders
+      if (messagesData && (messages.length !== messagesData.length || 
+          (messagesData.length > 0 && messages.length > 0 && 
+           messagesData[messagesData.length - 1].id !== messages[messages.length - 1].id))) {
+        setMessages(messagesData);
+      }
+    } catch (error) {
+      console.error('Error fetching messages:', error);
+    }
+  };
 
   useEffect(() => {
     if (!user) {
@@ -79,15 +104,8 @@ export default function ChatClient({ chatPartnerId }: ChatClientProps): ReactEle
         if (userError) throw userError;
         setChatPartner(userData);
 
-        // Get messages
-        const { data: messagesData, error: messagesError } = await supabase
-          .from('messages')
-          .select('*')
-          .or(`and(sender_id.eq.${user.id},receiver_id.eq.${chatPartnerId}),and(sender_id.eq.${chatPartnerId},receiver_id.eq.${user.id})`)
-          .order('created_at', { ascending: true });
-
-        if (messagesError) throw messagesError;
-        setMessages(messagesData || []);
+        // Initial fetch of messages
+        await fetchMessages();
       } catch (error) {
         console.error('Error fetching chat:', error);
         setError('Failed to load chat');
@@ -99,19 +117,8 @@ export default function ChatClient({ chatPartnerId }: ChatClientProps): ReactEle
 
     fetchChatPartner();
 
-    // Subscribe to new messages
-    const channel = supabase
-      .channel('messages')
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'messages',
-        filter: `or(and(sender_id.eq.${user.id},receiver_id.eq.${chatPartnerId}),and(sender_id.eq.${chatPartnerId},receiver_id.eq.${user.id}))`
-      }, (payload) => {
-        setMessages(prev => [...prev, payload.new as Message]);
-        scrollToBottom();
-      })
-      .subscribe();
+    // Set up polling interval when component mounts
+    pollingIntervalRef.current = setInterval(fetchMessages, 1000);
 
     // Mark messages as read when entering the chat
     const markMessagesAsRead = async () => {
@@ -129,8 +136,11 @@ export default function ChatClient({ chatPartnerId }: ChatClientProps): ReactEle
 
     markMessagesAsRead();
 
+    // Clean up function to clear interval when component unmounts
     return () => {
-      channel.unsubscribe();
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+      }
     };
   }, [user, chatPartnerId, supabase, router]);
 
@@ -158,6 +168,9 @@ export default function ChatClient({ chatPartnerId }: ChatClientProps): ReactEle
 
       if (error) throw error;
       setNewMessage('');
+      
+      // Immediately fetch messages after sending to update the UI faster
+      fetchMessages();
     } catch (error) {
       console.error('Error sending message:', error);
       toast.error('Failed to send message');
