@@ -5,9 +5,10 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Star } from 'lucide-react';
 import Image from 'next/image';
 import { toast } from 'sonner';
+import RatingDialog from '@/components/RatingDialog';
 
 interface Message {
   id: string;
@@ -40,6 +41,8 @@ export default function ChatClient({ chatPartnerId }: ChatClientProps): ReactEle
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [userMessageCount, setUserMessageCount] = useState(0);
   const [partnerMessageCount, setPartnerMessageCount] = useState(0);
+  const [showRatingButton, setShowRatingButton] = useState(false);
+  const [isRatingDialogOpen, setIsRatingDialogOpen] = useState(false);
 
   // Prompts array
   const prompts = [
@@ -74,6 +77,16 @@ export default function ChatClient({ chatPartnerId }: ChatClientProps): ReactEle
             messagesData[messagesData.length - 1].id !== messages[messages.length - 1].id))
       ) {
         setMessages(messagesData);
+        
+        // Count messages from each user
+        const userMessages = messagesData.filter(m => m.sender_id === user.id && m.sender_id !== 'system').length;
+        const partnerMessages = messagesData.filter(m => m.sender_id === chatPartnerId).length;
+        
+        setUserMessageCount(userMessages);
+        setPartnerMessageCount(partnerMessages);
+        
+        // Show rating button if 5 or more total messages have been exchanged
+        setShowRatingButton(userMessages + partnerMessages >= 5);
       }
     } catch (error) {
       console.error('Error fetching messages:', error);
@@ -280,30 +293,43 @@ export default function ChatClient({ chatPartnerId }: ChatClientProps): ReactEle
   return (
     <div className="flex flex-col h-screen bg-[#F5F5F5]">
       {/* Chat Header - Fixed at top */}
-      <div className="bg-white border-b border-[#E0E0E0] p-4 flex items-center space-x-4 sticky top-0 z-10 shadow-sm">
-        <button
-          onClick={() => router.push('/chat')}
-          className="text-[#1A1A1A] hover:text-[#666666] transition-colors"
-        >
-          <ArrowLeft className="w-6 h-6" />
-        </button>
-        <div className="flex items-center space-x-3">
-          <div className="relative w-10 h-10 rounded-full overflow-hidden bg-gray-200">
-            {chatPartner.profile_picture_url ? (
-              <Image
-                src={chatPartner.profile_picture_url}
-                alt={chatPartner.name}
-                fill
-                className="object-cover"
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center bg-[#6C0002] text-white text-xl">
-                {chatPartner.name.charAt(0)}
-              </div>
-            )}
+      <div className="bg-white border-b border-[#E0E0E0] p-4 flex items-center justify-between sticky top-0 z-10 shadow-sm">
+        <div className="flex items-center space-x-4">
+          <button
+            onClick={() => router.push('/chat')}
+            className="text-[#1A1A1A] hover:text-[#666666] transition-colors"
+          >
+            <ArrowLeft className="w-6 h-6" />
+          </button>
+          <div className="flex items-center space-x-3">
+            <div className="relative w-10 h-10 rounded-full overflow-hidden bg-gray-200">
+              {chatPartner.profile_picture_url ? (
+                <Image
+                  src={chatPartner.profile_picture_url}
+                  alt={chatPartner.name}
+                  fill
+                  className="object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-[#6C0002] text-white text-xl">
+                  {chatPartner.name.charAt(0)}
+                </div>
+              )}
+            </div>
+            <h2 className="font-medium text-[#1A1A1A]">{chatPartner.name}</h2>
           </div>
-          <h2 className="font-medium text-[#1A1A1A]">{chatPartner.name}</h2>
         </div>
+        
+        {/* Rating button - only shown after 5 messages */}
+        {showRatingButton && (
+          <button
+            onClick={() => setIsRatingDialogOpen(true)}
+            className="flex items-center space-x-1 text-[#6C0002] hover:text-[#8C0003] transition-colors"
+          >
+            <Star className="w-5 h-5" />
+            <span className="text-sm font-medium">Rate</span>
+          </button>
+        )}
       </div>
 
       {/* Messages - Scrollable area with newest messages at the bottom */}
@@ -359,6 +385,16 @@ export default function ChatClient({ chatPartnerId }: ChatClientProps): ReactEle
           </Button>
         </div>
       </div>
+
+      {/* Rating Dialog */}
+      {isRatingDialogOpen && (
+        <RatingDialog
+          isOpen={isRatingDialogOpen}
+          onClose={() => setIsRatingDialogOpen(false)}
+          userId={chatPartnerId}
+          userName={chatPartner.name}
+        />
+      )}
     </div>
   );
 }
