@@ -44,34 +44,37 @@ export default function ChatPage() {
       router.push('/login');
       return;
     }
-
     fetchMatches();
-  }, [user, supabase, router]);
+  }, [user, router]);
 
   useEffect(() => {
-    if (selectedMatch) {
-      fetchMessages(selectedMatch.id);
-      subscribeToMessages(selectedMatch.id);
-    }
+    if (!selectedMatch) return;
+    
+    fetchMessages();
+    const unsubscribe = subscribeToMessages();
+    
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
   }, [selectedMatch]);
 
   const fetchMatches = async () => {
+    if (!user) return;
     try {
       setIsLoading(true);
       const { data, error } = await supabase
         .from('matches')
         .select(`
-          id,
-          user1_id,
-          user2_id,
-          created_at,
+          *,
           other_user:users!matches_user2_id_fkey (
             id,
             name,
             profile_picture_url
           )
         `)
-        .or(`user1_id.eq.${user?.id},user2_id.eq.${user?.id}`);
+        .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`);
 
       if (error) throw error;
       setMatches(data || []);
@@ -83,12 +86,12 @@ export default function ChatPage() {
     }
   };
 
-  const fetchMessages = async (matchId: string) => {
+  const fetchMessages = async () => {
     try {
       const { data, error } = await supabase
         .from('messages')
         .select('*')
-        .eq('match_id', matchId)
+        .eq('match_id', selectedMatch?.id)
         .order('created_at', { ascending: true });
 
       if (error) throw error;
@@ -100,26 +103,29 @@ export default function ChatPage() {
     }
   };
 
-  const subscribeToMessages = (matchId: string) => {
-    const subscription = supabase
-      .channel(`messages:${matchId}`)
+  const subscribeToMessages = () => {
+    if (!selectedMatch?.id) return undefined;
+    
+    const channel = supabase
+      .channel(`match_${selectedMatch.id}`)
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
           table: 'messages',
-          filter: `match_id=eq.${matchId}`
+          filter: `match_id=eq.${selectedMatch.id}`
         },
         (payload) => {
-          setMessages(prev => [...prev, payload.new as Message]);
+          const newMessage = payload.new as Message;
+          setMessages(prev => [...prev, newMessage]);
           scrollToBottom();
         }
       )
       .subscribe();
 
     return () => {
-      subscription.unsubscribe();
+      supabase.removeChannel(channel);
     };
   };
 

@@ -29,7 +29,13 @@ interface Message {
   created_at: string;
 }
 
-export default function ChatDetailPage({ params }: { params: { id: string } }) {
+interface PageProps {
+  params: {
+    id: string;
+  };
+}
+
+export default function ChatDetailPage({ params }: PageProps) {
   const router = useRouter();
   const { user, supabase } = useAuth();
   const [match, setMatch] = useState<Match | null>(null);
@@ -38,34 +44,13 @@ export default function ChatDetailPage({ params }: { params: { id: string } }) {
   const [isLoading, setIsLoading] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (!user) {
-      router.push('/login');
-      return;
-    }
-
-    fetchMatch();
-  }, [user, supabase, params.id]);
-
-  useEffect(() => {
-    if (match) {
-      fetchMessages();
-      const subscription = subscribeToMessages();
-      return () => {
-        subscription.unsubscribe();
-      };
-    }
-  }, [match]);
-
   const fetchMatch = async () => {
+    if (!user) return;
     try {
       const { data, error } = await supabase
         .from('matches')
         .select(`
-          id,
-          user1_id,
-          user2_id,
-          created_at,
+          *,
           other_user:users!matches_user2_id_fkey (
             id,
             name,
@@ -77,15 +62,15 @@ export default function ChatDetailPage({ params }: { params: { id: string } }) {
 
       if (error) throw error;
       setMatch(data);
-      setIsLoading(false);
     } catch (error) {
       console.error('Error fetching match:', error);
-      toast.error('Failed to load chat');
+      toast.error('Failed to load match details');
       router.push('/chat');
     }
   };
 
   const fetchMessages = async () => {
+    if (!params.id) return;
     try {
       const { data, error } = await supabase
         .from('messages')
@@ -103,8 +88,10 @@ export default function ChatDetailPage({ params }: { params: { id: string } }) {
   };
 
   const subscribeToMessages = () => {
-    return supabase
-      .channel(`messages:${params.id}`)
+    if (!params.id) return undefined;
+    
+    const channel = supabase
+      .channel(`match_${params.id}`)
       .on(
         'postgres_changes',
         {
@@ -114,12 +101,38 @@ export default function ChatDetailPage({ params }: { params: { id: string } }) {
           filter: `match_id=eq.${params.id}`
         },
         (payload) => {
-          setMessages(prev => [...prev, payload.new as Message]);
+          const newMessage = payload.new as Message;
+          setMessages(prev => [...prev, newMessage]);
           scrollToBottom();
         }
       )
       .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   };
+
+  useEffect(() => {
+    if (!user) {
+      router.push('/login');
+      return;
+    }
+    fetchMatch();
+  }, [user, params.id, router]);
+
+  useEffect(() => {
+    if (!match) return;
+    
+    fetchMessages();
+    const unsubscribe = subscribeToMessages();
+    
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
+  }, [match]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
