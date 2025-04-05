@@ -210,8 +210,8 @@ export default function ChatClient({ chatPartnerId }: ChatClientProps): ReactEle
 
   return (
     <div className="flex flex-col h-screen bg-[#F5F5F5]">
-      {/* Chat Header */}
-      <div className="bg-white border-b border-[#E0E0E0] p-4 flex items-center space-x-4">
+      {/* Chat Header - Fixed at top */}
+      <div className="bg-white border-b border-[#E0E0E0] p-4 flex items-center space-x-4 sticky top-0 z-10 shadow-sm">
         <button
           onClick={() => router.push('/chat')}
           className="text-[#1A1A1A] hover:text-[#666666] transition-colors"
@@ -237,7 +237,7 @@ export default function ChatClient({ chatPartnerId }: ChatClientProps): ReactEle
         </div>
       </div>
 
-      {/* Messages */}
+      {/* Messages - Scrollable area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((message) => (
           <div
@@ -264,8 +264,8 @@ export default function ChatClient({ chatPartnerId }: ChatClientProps): ReactEle
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Message Input */}
-      <div className="p-4 border-t border-[#E0E0E0] bg-white">
+      {/* Message Input - Fixed at bottom */}
+      <div className="p-4 border-t border-[#E0E0E0] bg-white sticky bottom-0 z-10 shadow-sm">
         <div className="flex space-x-2">
           <Input
             value={newMessage}
