@@ -5,18 +5,18 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
+  const { user, isLoading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
-    // Allow access to root page and auth pages without authentication
-    if (!loading && !user && pathname !== '/' && !pathname.startsWith('/auth')) {
-      router.push('/auth');
+    // Allow access to root page and login pages without authentication
+    if (!isLoading && !user && pathname !== '/' && !pathname.startsWith('/login')) {
+      router.push('/login');
     }
-  }, [user, loading, router, pathname]);
+  }, [user, isLoading, router, pathname]);
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-pulse">Loading...</div>
@@ -24,8 +24,8 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
     );
   }
 
-  // Allow access to root page and auth pages without authentication
-  if (!user && pathname !== '/' && !pathname.startsWith('/auth')) {
+  // Allow access to root page and login pages without authentication
+  if (!user && pathname !== '/' && !pathname.startsWith('/login')) {
     return null;
   }
 

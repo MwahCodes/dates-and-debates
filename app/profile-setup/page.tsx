@@ -55,62 +55,107 @@ const HEIGHT_OPTIONS = generateHeightOptions();
 const WEIGHT_OPTIONS = generateWeightOptions();
 
 export default function ProfileSetupPage() {
-  const [formData, setFormData] = useState({
-    name: '',
-    birthday: '',
-    education_level: '',
-    height: '',
-    weight: '',
-    mbti_type: '',
-  });
-  const [loading, setLoading] = useState(false);
   const router = useRouter();
   const { user, supabase } = useAuth();
+  const [name, setName] = useState('');
+  const [birthday, setBirthday] = useState<Date | null>(null);
+  const [educationLevel, setEducationLevel] = useState('');
+  const [height, setHeight] = useState('');
+  const [weight, setWeight] = useState('');
+  const [mbtiType, setMbtiType] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (!user) {
-      router.push('/auth');
+      router.push('/login');
     }
   }, [user, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    setIsSubmitting(true);
 
     try {
-      // Create user profile
-      const { error: profileError } = await supabase
+      if (!user) {
+        toast.error('You must be logged in to complete your profile');
+        return;
+      }
+
+      if (!name.trim()) {
+        toast.error('Please enter your name');
+        return;
+      }
+      if (!birthday) {
+        toast.error('Please select your birthday');
+        return;
+      }
+      if (!educationLevel) {
+        toast.error('Please select your education level');
+        return;
+      }
+      if (!height) {
+        toast.error('Please select your height');
+        return;
+      }
+      if (!weight) {
+        toast.error('Please select your weight');
+        return;
+      }
+
+      const profileData = {
+        id: user.id,
+        name: name.trim(),
+        birthday: birthday.toISOString(),
+        education_level: educationLevel,
+        height: parseInt(height),
+        weight: parseInt(weight),
+        mbti_type: mbtiType || null,
+        updated_at: new Date().toISOString()
+      };
+
+      const { error } = await supabase
         .from('users')
-        .insert({
-          id: user?.id,
-          name: formData.name,
-          birthday: formData.birthday,
-          education_level: formData.education_level,
-          height: parseInt(formData.height),
-          weight: parseInt(formData.weight),
-          mbti_type: formData.mbti_type,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        });
+        .upsert(profileData);
 
-      if (profileError) throw profileError;
+      if (error) throw error;
 
-      toast.success('Profile created successfully!');
+      toast.success('Profile updated successfully');
       router.push('/home');
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'An error occurred while creating your profile');
+      console.error('Error updating profile:', err);
+      toast.error('An error occurred while updating your profile');
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    if (name === 'name') {
+      setName(value);
+    } else if (name === 'birthday') {
+      setBirthday(value ? new Date(value) : null);
+    } else if (name === 'education_level') {
+      setEducationLevel(value);
+    } else if (name === 'height') {
+      setHeight(value);
+    } else if (name === 'weight') {
+      setWeight(value);
+    } else if (name === 'mbti_type') {
+      setMbtiType(value);
+    }
   };
 
   const handleSelectChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    if (field === 'education_level') {
+      setEducationLevel(value);
+    } else if (field === 'height') {
+      setHeight(value);
+    } else if (field === 'weight') {
+      setWeight(value);
+    } else if (field === 'mbti_type') {
+      setMbtiType(value);
+    }
   };
 
   return (
@@ -129,7 +174,7 @@ export default function ProfileSetupPage() {
               <Input
                 id="name"
                 name="name"
-                value={formData.name}
+                value={name}
                 onChange={handleChange}
                 placeholder="Enter your full name"
                 required
@@ -143,7 +188,7 @@ export default function ProfileSetupPage() {
                 id="birthday"
                 name="birthday"
                 type="date"
-                value={formData.birthday}
+                value={birthday ? birthday.toISOString().split('T')[0] : ''}
                 onChange={handleChange}
                 required
                 className="bg-[#F5F5F5] border-0 text-[#1A1A1A] placeholder:text-[#666666] h-14 text-lg"
@@ -152,15 +197,15 @@ export default function ProfileSetupPage() {
 
             <div className="space-y-2">
               <h2 className="text-xl text-[#1A1A1A]">My education level is</h2>
-              <Select value={formData.education_level} onValueChange={(value) => handleSelectChange('education_level', value)}>
+              <Select value={educationLevel} onValueChange={(value) => handleSelectChange('education_level', value)}>
                 <SelectTrigger className="bg-[#F5F5F5] border-0 text-[#1A1A1A] h-14 text-lg">
                   <SelectValue placeholder="Select education level" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="High School">High School</SelectItem>
-                  <SelectItem value="Associate's Degree">Associate's Degree</SelectItem>
-                  <SelectItem value="Bachelor's Degree">Bachelor's Degree</SelectItem>
-                  <SelectItem value="Master's Degree">Master's Degree</SelectItem>
+                  <SelectItem value="Associate&apos;s Degree">Associate&apos;s Degree</SelectItem>
+                  <SelectItem value="Bachelor&apos;s Degree">Bachelor&apos;s Degree</SelectItem>
+                  <SelectItem value="Master&apos;s Degree">Master&apos;s Degree</SelectItem>
                   <SelectItem value="Doctorate">Doctorate</SelectItem>
                 </SelectContent>
               </Select>
@@ -168,7 +213,7 @@ export default function ProfileSetupPage() {
 
             <div className="space-y-2">
               <h2 className="text-xl text-[#1A1A1A]">My height is</h2>
-              <Select value={formData.height} onValueChange={(value) => handleSelectChange('height', value)}>
+              <Select value={height} onValueChange={(value) => handleSelectChange('height', value)}>
                 <SelectTrigger className="bg-[#F5F5F5] border-0 text-[#1A1A1A] h-14 text-lg">
                   <SelectValue placeholder="Select your height" />
                 </SelectTrigger>
@@ -184,7 +229,7 @@ export default function ProfileSetupPage() {
 
             <div className="space-y-2">
               <h2 className="text-xl text-[#1A1A1A]">My weight is</h2>
-              <Select value={formData.weight} onValueChange={(value) => handleSelectChange('weight', value)}>
+              <Select value={weight} onValueChange={(value) => handleSelectChange('weight', value)}>
                 <SelectTrigger className="bg-[#F5F5F5] border-0 text-[#1A1A1A] h-14 text-lg">
                   <SelectValue placeholder="Select your weight" />
                 </SelectTrigger>
@@ -200,7 +245,7 @@ export default function ProfileSetupPage() {
 
             <div className="space-y-2">
               <h2 className="text-xl text-[#1A1A1A]">My MBTI type is</h2>
-              <Select value={formData.mbti_type} onValueChange={(value) => handleSelectChange('mbti_type', value)}>
+              <Select value={mbtiType} onValueChange={(value) => handleSelectChange('mbti_type', value)}>
                 <SelectTrigger className="bg-[#F5F5F5] border-0 text-[#1A1A1A] h-14 text-lg">
                   <SelectValue placeholder="Select your MBTI type" />
                 </SelectTrigger>
@@ -217,9 +262,9 @@ export default function ProfileSetupPage() {
             <Button
               type="submit"
               className="w-full bg-[#6C0002] text-white h-14 text-lg hover:bg-[#8C0003] mt-8"
-              disabled={loading}
+              disabled={isSubmitting}
             >
-              {loading ? 'Creating Profile...' : 'Complete Profile'}
+              {isSubmitting ? 'Updating Profile...' : 'Complete Profile'}
             </Button>
           </form>
         </div>

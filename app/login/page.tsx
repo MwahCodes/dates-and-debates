@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/lib/auth-context';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
@@ -12,7 +12,7 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-  const { signIn } = useAuth();
+  const { supabase } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,8 +20,34 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      await signIn(email, password);
-      router.push('/home');
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) throw error;
+
+      // Check if user has a profile in the users table
+      const { data: profileData, error: profileError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', data.user.id)
+        .single();
+
+      if (profileError) {
+        if (profileError.code === 'PGRST116') {
+          // No profile exists, redirect to profile setup
+          router.push('/profile-setup');
+        } else {
+          throw profileError;
+        }
+      } else if (!profileData) {
+        // No profile exists, redirect to profile setup
+        router.push('/profile-setup');
+      } else {
+        // Profile exists, go to home
+        router.push('/home');
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {

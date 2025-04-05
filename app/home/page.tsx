@@ -17,47 +17,30 @@ interface User {
 }
 
 export default function HomePage() {
-  const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
   const router = useRouter();
   const { user, supabase } = useAuth();
+  const [users, setUsers] = useState<User[]>([]);
 
   useEffect(() => {
-    if (user) {
-      fetchUsers();
-    }
-  }, [user]);
+    const fetchUsers = async () => {
+      if (!user) return;
 
-  const fetchUsers = async () => {
-    try {
-      // Get the current user's profile
-      const { data: currentUser } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', user?.id)
-        .single();
+      try {
+        const { data, error } = await supabase
+          .from('users')
+          .select('*')
+          .neq('id', user.id);
 
-      if (!currentUser) {
-        router.push('/profile-setup');
-        return;
+        if (error) throw error;
+        setUsers(data || []);
+      } catch (err) {
+        console.error('Error fetching users:', err);
+        toast.error('Failed to load users');
       }
+    };
 
-      // Get all users except the current user
-      const { data: allUsers, error } = await supabase
-        .from('users')
-        .select('*')
-        .neq('id', user?.id);
-
-      if (error) throw error;
-
-      setUsers(allUsers || []);
-    } catch (error) {
-      toast.error('Failed to load users');
-      console.error('Error fetching users:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    fetchUsers();
+  }, [user, supabase]);
 
   const handleSwipe = async (direction: 'left' | 'right', swipedUserId: string) => {
     try {
@@ -81,16 +64,6 @@ export default function HomePage() {
       console.error('Error processing swipe:', error);
     }
   };
-
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-center">
-          <div className="text-2xl font-semibold">Loading...</div>
-        </div>
-      </div>
-    );
-  }
 
   if (users.length === 0) {
     return (

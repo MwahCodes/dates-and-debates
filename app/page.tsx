@@ -70,7 +70,7 @@ export default function WelcomePage() {
 
           <Button 
             className="w-full bg-[#6C0002] text-white py-6 rounded-lg mt-8 text-lg hover:bg-[#8C0003] transition-colors"
-            onClick={() => router.push('/auth')}
+            onClick={() => router.push('/login')}
           >
             I Agree
           </Button>
