@@ -1,18 +1,20 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/lib/auth-context';
+import { useRouter, usePathname } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
-    if (!loading && !user) {
-      router.push('/login');
+    // Allow access to root page and auth pages without authentication
+    if (!loading && !user && pathname !== '/' && !pathname.startsWith('/auth')) {
+      router.push('/auth');
     }
-  }, [user, loading, router]);
+  }, [user, loading, router, pathname]);
 
   if (loading) {
     return (
@@ -22,7 +24,8 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
     );
   }
 
-  if (!user) {
+  // Allow access to root page and auth pages without authentication
+  if (!user && pathname !== '/' && !pathname.startsWith('/auth')) {
     return null;
   }
 

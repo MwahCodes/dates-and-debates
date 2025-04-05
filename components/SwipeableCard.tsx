@@ -2,14 +2,18 @@ import { useState } from 'react';
 import { useSwipeable } from 'react-swipeable';
 import Image from 'next/image';
 
-interface SwipeableCardProps {
+interface User {
+  id: string;
   name: string;
-  imageUrl: string;
-  onSwipeLeft: () => void;
-  onSwipeRight: () => void;
+  profile_picture_url: string | null;
 }
 
-export default function SwipeableCard({ name, imageUrl, onSwipeLeft, onSwipeRight }: SwipeableCardProps) {
+interface SwipeableCardProps {
+  user: User;
+  onSwipe: (direction: 'left' | 'right') => void;
+}
+
+export default function SwipeableCard({ user, onSwipe }: SwipeableCardProps) {
   const [offset, setOffset] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
@@ -21,7 +25,7 @@ export default function SwipeableCard({ name, imageUrl, onSwipeLeft, onSwipeRigh
     
     // Wait for animation to complete before calling the handler
     setTimeout(() => {
-      direction === 'left' ? onSwipeLeft() : onSwipeRight();
+      onSwipe(direction);
       // Reset for next card
       setOffset(0);
       setIsLeaving(false);
@@ -75,8 +79,8 @@ export default function SwipeableCard({ name, imageUrl, onSwipeLeft, onSwipeRigh
     >
       <div className="relative w-full h-full">
         <Image
-          src={imageUrl || '/placeholder-profile.jpg'}
-          alt={`${name}'s profile`}
+          src={user.profile_picture_url || '/placeholder-profile.jpg'}
+          alt={`${user.name}'s profile`}
           fill
           className="object-cover"
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
@@ -89,10 +93,10 @@ export default function SwipeableCard({ name, imageUrl, onSwipeLeft, onSwipeRigh
       
       {/* Name */}
       <div className="absolute bottom-0 left-0 right-0 p-4">
-        <h2 className="text-2xl font-semibold text-white">{name}</h2>
+        <h2 className="text-2xl font-semibold text-white">{user.name}</h2>
       </div>
 
-      {/* Swipe indicators - now on opposite sides */}
+      {/* Swipe indicators */}
       <div
         className={`absolute top-4 right-4 bg-red-500 text-white px-3 py-1 rounded-full transition-opacity duration-200`}
         style={{ opacity: offset < 0 ? opacity : 0 }}
