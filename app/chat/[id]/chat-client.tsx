@@ -327,6 +327,7 @@ export default function ChatClient({ chatPartnerId }: ChatClientProps): ReactEle
                     hour: '2-digit',
                     minute: '2-digit',
                   })}
+                  {message.sender_id === 'system' && ' (AI Generated)'}
                 </p>
               </div>
             </div>
