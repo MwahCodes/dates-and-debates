@@ -70,10 +70,35 @@ export default function WelcomePage() {
 
           <Button 
             className="w-full bg-[#6C0002] text-white py-6 rounded-lg mt-8 text-lg hover:bg-[#8C0003] transition-colors"
-            onClick={() => router.push('/login')}
+            onClick={() => {
+              console.log('I Agree button clicked, navigating to /login');
+              try {
+                // Try using Next.js router first
+                router.push('/login');
+                
+                // As a fallback, use direct navigation after a short delay
+                setTimeout(() => {
+                  console.log('Using fallback navigation');
+                  window.location.href = '/login';
+                }, 200);
+              } catch (error) {
+                console.error('Navigation error:', error);
+                // If all else fails, use the most direct approach
+                window.location.href = '/login';
+              }
+            }}
           >
             I Agree
           </Button>
+          
+          <div className="text-center mt-4">
+            <a 
+              href="/login" 
+              className="text-[#2196F3] text-sm hover:underline"
+            >
+              Go to Login Page
+            </a>
+          </div>
         </div>
       </div>
     </div>

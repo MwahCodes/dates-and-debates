@@ -46,12 +46,17 @@ export default function HomePage() {
         const swipedIds = swipedUsers?.map(s => s.swiped_id) || [];
 
         // Get potential matches
-        const { data, error } = await supabase
+        let query = supabase
           .from('users')
           .select('*')
-          .neq('id', user.id)
-          .not('id', 'in', `(${swipedIds.join(',')})`)
-          .limit(10);
+          .neq('id', user.id);
+        
+        // Only add the 'not in' filter if there are swiped IDs
+        if (swipedIds.length > 0) {
+          query = query.not('id', 'in', `(${swipedIds.join(',')})`);
+        }
+        
+        const { data, error } = await query.limit(10);
 
         if (error) throw error;
         setUsers(data || []);
@@ -78,6 +83,33 @@ export default function HomePage() {
     }
 
     try {
+      // Check if the user has already swiped on this profile
+      const { data: existingSwipe, error: checkError } = await supabase
+        .from('swipes')
+        .select('id')
+        .eq('swiper_id', user.id)
+        .eq('swiped_id', swipedUserId)
+        .maybeSingle();
+
+      if (checkError) {
+        console.error('Error checking existing swipe:', checkError);
+        throw new Error(checkError.message || 'Failed to check existing swipe');
+      }
+
+      // If already swiped, skip inserting and move to next profile
+      if (existingSwipe) {
+        toast.error('You have already swiped on this profile');
+        // Move to the next profile
+        setCurrentIndex(prevIndex => {
+          const nextIndex = prevIndex + 1;
+          if (nextIndex >= users.length) {
+            toast.info('No more profiles to show');
+          }
+          return nextIndex;
+        });
+        return;
+      }
+
       // Record the swipe
       const { error: swipeError } = await supabase
         .from('swipes')
@@ -92,23 +124,11 @@ export default function HomePage() {
         throw new Error(swipeError.message || 'Failed to record swipe');
       }
 
-      // Check if a match was created
+      // Show a toast based on the swipe direction
       if (direction === 'right') {
-        const { data: matchData, error: matchError } = await supabase
-          .from('matches')
-          .select('*')
-          .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`)
-          .or(`user1_id.eq.${swipedUserId},user2_id.eq.${swipedUserId}`)
-          .maybeSingle();
-
-        if (matchError) {
-          console.error('Match check error:', matchError);
-          throw new Error(matchError.message || 'Failed to check for match');
-        }
-
-        if (matchData) {
-          toast.success("It's a match! 🎉");
-        }
+        toast.success('You liked this profile!');
+      } else {
+        toast.info('Profile skipped');
       }
 
       // Move to next profile
