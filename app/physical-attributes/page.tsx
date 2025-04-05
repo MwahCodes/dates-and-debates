@@ -129,7 +129,7 @@ export default function PhysicalAttributes() {
           <Button 
             className="w-full bg-[#6C0002] text-white py-6 rounded-lg mt-8 text-lg hover:bg-[#8C0003] transition-colors"
             disabled={!education || !height || !weight}
-            onClick={() => router.push('/next-page')}
+            onClick={() => router.push('/myers-briggs')}
           >
             Continue
           </Button>
