@@ -66,53 +66,79 @@ export default function HomePage() {
   }, [user, supabase, router]);
 
   const handleSwipe = async (direction: 'left' | 'right', swipedUserId: string) => {
+    if (!user?.id) {
+      toast.error('You must be logged in to swipe');
+      return;
+    }
+
+    if (!swipedUserId) {
+      toast.error('No profile to swipe on');
+      return;
+    }
+
     try {
       // Record the swipe
       const { error: swipeError } = await supabase
         .from('swipes')
-        .insert([
-          {
-            swiper_id: user?.id,
-            swiped_id: swipedUserId,
-            direction: direction
-          }
-        ]);
+        .insert({
+          swiper_id: user.id,
+          swiped_id: swipedUserId,
+          direction: direction
+        });
 
-      if (swipeError) throw swipeError;
+      if (swipeError) {
+        console.error('Swipe error:', swipeError);
+        throw new Error(swipeError.message || 'Failed to record swipe');
+      }
 
+      // Check for match only on right swipe
       if (direction === 'right') {
-        // Check if it's a match
-        const { data: existingSwipe, error: matchError } = await supabase
+        const { data: matchData, error: matchError } = await supabase
           .from('swipes')
           .select('*')
           .eq('swiper_id', swipedUserId)
-          .eq('swiped_id', user?.id)
+          .eq('swiped_id', user.id)
           .eq('direction', 'right')
-          .single();
+          .maybeSingle();
 
-        if (matchError && matchError.code !== 'PGRST116') throw matchError;
+        if (matchError) {
+          console.error('Match check error:', matchError);
+          throw new Error(matchError.message || 'Failed to check for match');
+        }
 
-        if (existingSwipe) {
-          // It's a match!
-          const { error: matchInsertError } = await supabase
+        if (matchData) {
+          // Create match with ordered user IDs
+          const user1_id = user.id < swipedUserId ? user.id : swipedUserId;
+          const user2_id = user.id < swipedUserId ? swipedUserId : user.id;
+
+          const { error: matchCreateError } = await supabase
             .from('matches')
-            .insert([
-              {
-                user1_id: user?.id,
-                user2_id: swipedUserId
-              }
-            ]);
+            .insert({
+              user1_id,
+              user2_id
+            });
 
-          if (matchInsertError) throw matchInsertError;
-          toast.success('It\'s a match!');
+          if (matchCreateError && !matchCreateError.message?.includes('unique constraint')) {
+            console.error('Match creation error:', matchCreateError);
+            throw new Error(matchCreateError.message || 'Failed to create match');
+          }
+
+          toast.success("It's a match! 🎉");
         }
       }
 
-      // Move to next card
-      setCurrentIndex(prev => prev + 1);
+      // Move to next profile
+      setCurrentIndex(prevIndex => {
+        const nextIndex = prevIndex + 1;
+        if (nextIndex >= users.length) {
+          toast.info('No more profiles to show');
+        }
+        return nextIndex;
+      });
+
     } catch (error) {
       console.error('Error processing swipe:', error);
-      toast.error('Failed to process swipe');
+      toast.error(error instanceof Error ? error.message : 'Failed to process swipe');
     }
   };
 
@@ -154,28 +180,63 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-[#F5F5F5] flex flex-col">
       {/* Cards container with proper spacing */}
-      <div className="flex-1 flex items-center justify-center px-4 py-4">
-        <div className="w-full max-w-sm mx-auto relative" style={{ height: 'calc(100vh - 120px)' }}>
-          {users.slice(currentIndex, currentIndex + 3).map((user, index) => (
-            <div
-              key={user.id}
-              className="absolute w-full transition-all duration-300 ease-out"
-              style={{
-                zIndex: users.length - index,
-                transform: `scale(${1 - index * 0.05}) translateY(${index * 10}px)`,
-                opacity: index === 0 ? 1 : 0.8,
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0
-              }}
-            >
-              <SwipeableCard
-                user={user}
-                onSwipe={(direction) => handleSwipe(direction, user.id)}
-              />
-            </div>
-          ))}
+      <div className="flex-1 flex flex-col items-center justify-between px-4 py-4">
+        <div className="w-full max-w-sm mx-auto flex flex-col" style={{ height: 'calc(100vh - 180px)' }}>
+          {/* Cards */}
+          <div className="relative flex-1 mb-4">
+            {users.slice(currentIndex, currentIndex + 3).map((user, index) => (
+              <div
+                key={user.id}
+                className="absolute w-full transition-all duration-300 ease-out"
+                style={{
+                  zIndex: users.length - index,
+                  transform: `scale(${1 - index * 0.05}) translateY(${index * 10}px)`,
+                  opacity: index === 0 ? 1 : 0.8,
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0
+                }}
+              >
+                <SwipeableCard
+                  user={user}
+                  onSwipe={(direction) => handleSwipe(direction, user.id)}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="fixed bottom-20 left-0 right-0 flex justify-center space-x-4 p-4 bg-[#F5F5F5]">
+          <Button
+            onClick={() => {
+              const currentUser = users[currentIndex];
+              if (currentUser) {
+                handleSwipe('left', currentUser.id);
+              } else {
+                toast.error('No more profiles to show');
+              }
+            }}
+            disabled={currentIndex >= users.length}
+            className="w-24 h-14 bg-white border-2 border-red-500 hover:bg-red-50 text-red-500 text-lg shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            No
+          </Button>
+          <Button
+            onClick={() => {
+              const currentUser = users[currentIndex];
+              if (currentUser) {
+                handleSwipe('right', currentUser.id);
+              } else {
+                toast.error('No more profiles to show');
+              }
+            }}
+            disabled={currentIndex >= users.length}
+            className="w-24 h-14 bg-[#6C0002] hover:bg-[#8C0003] text-white text-lg shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Yes
+          </Button>
         </div>
       </div>
     </div>
