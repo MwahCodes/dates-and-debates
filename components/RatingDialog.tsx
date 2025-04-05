@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Star } from 'lucide-react';
@@ -24,6 +24,31 @@ export default function RatingDialog({
   const [hoveredRating, setHoveredRating] = useState<number>(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { user, supabase } = useAuth();
+
+  // Check on component mount if the user has already rated this person
+  useEffect(() => {
+    const checkExistingRating = async () => {
+      if (!user || !isOpen) return;
+      
+      try {
+        const { data: existingRating, error } = await supabase
+          .from('ratings')
+          .select('id')
+          .eq('rater_id', user.id)
+          .eq('rated_id', userId)
+          .single();
+        
+        if (existingRating) {
+          toast.error('No no no naughty, only one rating');
+          onClose();
+        }
+      } catch (error) {
+        console.error('Error checking existing rating:', error);
+      }
+    };
+    
+    checkExistingRating();
+  }, [isOpen, user, userId, supabase, onClose]);
 
   if (!isOpen) return null;
 
@@ -49,36 +74,26 @@ export default function RatingDialog({
         .eq('rated_id', userId)
         .single();
 
+      if (existingRating) {
+        toast.error('No no no naughty, only one rating');
+        onClose();
+        return;
+      }
+
       if (checkError && checkError.code !== 'PGRST116') {
         throw checkError;
       }
 
-      // If rating exists, update it, otherwise insert a new one
-      let error;
-      if (existingRating) {
-        const { error: updateError } = await supabase
-          .from('ratings')
-          .update({ 
-            score: rating,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', existingRating.id);
-        
-        error = updateError;
-        
-      } else {
-        const { error: insertError } = await supabase
-          .from('ratings')
-          .insert({
-            rater_id: user.id,
-            rated_id: userId,
-            score: rating
-          });
-        
-        error = insertError;
-      }
-
-      if (error) throw error;
+      // Insert new rating
+      const { error: insertError } = await supabase
+        .from('ratings')
+        .insert({
+          rater_id: user.id,
+          rated_id: userId,
+          score: rating
+        });
+      
+      if (insertError) throw insertError;
 
       toast.success('Rating submitted successfully');
       onClose();

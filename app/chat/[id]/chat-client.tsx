@@ -323,7 +323,25 @@ export default function ChatClient({ chatPartnerId }: ChatClientProps): ReactEle
         {/* Rating button - only shown after 5 messages */}
         {showRatingButton && (
           <button
-            onClick={() => setIsRatingDialogOpen(true)}
+            onClick={async () => {
+              // Check if the user has already rated this person
+              if (user) {
+                const { data: existingRating, error } = await supabase
+                  .from('ratings')
+                  .select('id')
+                  .eq('rater_id', user.id)
+                  .eq('rated_id', chatPartnerId)
+                  .single();
+                
+                if (existingRating) {
+                  toast.error('No no no naughty, only one rating');
+                  return;
+                }
+                
+                // If no existing rating, open the dialog
+                setIsRatingDialogOpen(true);
+              }
+            }}
             className="flex items-center space-x-1 text-[#6C0002] hover:text-[#8C0003] transition-colors"
           >
             <Star className="w-5 h-5" />
