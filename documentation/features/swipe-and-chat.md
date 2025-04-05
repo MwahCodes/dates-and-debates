@@ -4,24 +4,30 @@
 
 ### Swipes Table
 ```sql
-create table swipes (
-  id uuid default uuid_generate_v4() primary key,
-  swiper_id uuid references auth.users(id),
-  swiped_id uuid references auth.users(id),
-  direction text check (direction in ('left', 'right')),
-  created_at timestamp with time zone default timezone('utc'::text, now()),
-  unique(swiper_id, swiped_id)
+create table public.swipes (
+  id uuid not null default extensions.uuid_generate_v4(),
+  swiper_id uuid not null,
+  swiped_id uuid not null,
+  is_like boolean not null,
+  created_at timestamp with time zone null default now(),
+  constraint swipes_pkey primary key (id),
+  constraint swipes_swiper_id_fkey foreign key (swiper_id) references auth.users (id),
+  constraint swipes_swiped_id_fkey foreign key (swiped_id) references auth.users (id),
+  constraint unique_swipe unique (swiper_id, swiped_id)
 );
 ```
 
 ### Matches Table
 ```sql
-create table matches (
-  id uuid default uuid_generate_v4() primary key,
-  user1_id uuid references auth.users(id),
-  user2_id uuid references auth.users(id),
-  created_at timestamp with time zone default timezone('utc'::text, now()),
-  unique(user1_id, user2_id)
+create table public.matches (
+  id uuid not null default extensions.uuid_generate_v4(),
+  user1_id uuid not null,
+  user2_id uuid not null,
+  created_at timestamp with time zone null default now(),
+  constraint matches_pkey primary key (id),
+  constraint matches_user1_id_fkey foreign key (user1_id) references auth.users (id),
+  constraint matches_user2_id_fkey foreign key (user2_id) references auth.users (id),
+  constraint unique_match unique (user1_id, user2_id)
 );
 ```
 
@@ -29,25 +35,25 @@ create table matches (
 
 ```sql
 -- Enable RLS
-alter table swipes enable row level security;
-alter table matches enable row level security;
+alter table public.swipes enable row level security;
+alter table public.matches enable row level security;
 
 -- Swipes Policies
 create policy "Users can view their own swipes"
-  on swipes for select
+  on public.swipes for select
   using (auth.uid() = swiper_id);
 
 create policy "Users can create their own swipes"
-  on swipes for insert
+  on public.swipes for insert
   with check (auth.uid() = swiper_id);
 
 -- Matches Policies
 create policy "Users can view their own matches"
-  on matches for select
+  on public.matches for select
   using (auth.uid() = user1_id or auth.uid() = user2_id);
 
 create policy "Users can create matches"
-  on matches for insert
+  on public.matches for insert
   with check (auth.uid() = user1_id or auth.uid() = user2_id);
 ```
 

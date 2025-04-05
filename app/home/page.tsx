@@ -83,7 +83,7 @@ export default function HomePage() {
         .insert({
           swiper_id: user.id,
           swiped_id: swipedUserId,
-          direction: direction
+          is_like: direction === 'right'
         });
 
       if (swipeError) {
@@ -91,14 +91,13 @@ export default function HomePage() {
         throw new Error(swipeError.message || 'Failed to record swipe');
       }
 
-      // Check for match only on right swipe
+      // Check if a match was created
       if (direction === 'right') {
         const { data: matchData, error: matchError } = await supabase
-          .from('swipes')
+          .from('matches')
           .select('*')
-          .eq('swiper_id', swipedUserId)
-          .eq('swiped_id', user.id)
-          .eq('direction', 'right')
+          .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`)
+          .or(`user1_id.eq.${swipedUserId},user2_id.eq.${swipedUserId}`)
           .maybeSingle();
 
         if (matchError) {
@@ -107,22 +106,6 @@ export default function HomePage() {
         }
 
         if (matchData) {
-          // Create match with ordered user IDs
-          const user1_id = user.id < swipedUserId ? user.id : swipedUserId;
-          const user2_id = user.id < swipedUserId ? swipedUserId : user.id;
-
-          const { error: matchCreateError } = await supabase
-            .from('matches')
-            .insert({
-              user1_id,
-              user2_id
-            });
-
-          if (matchCreateError && !matchCreateError.message?.includes('unique constraint')) {
-            console.error('Match creation error:', matchCreateError);
-            throw new Error(matchCreateError.message || 'Failed to create match');
-          }
-
           toast.success("It's a match! 🎉");
         }
       }
