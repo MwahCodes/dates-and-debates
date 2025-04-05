@@ -112,7 +112,7 @@ export default function ProfilePage() {
 
   // Render profile
   return (
-    <div className="min-h-screen bg-[#F5F5F5] flex flex-col items-center p-4">
+    <div className="bg-[#F5F5F5] flex flex-col items-center p-4 pb-20">
       <div className="w-full max-w-md space-y-6">
         <div className="bg-white rounded-lg p-6 shadow-sm">
           {/* Profile header */}
@@ -181,15 +181,8 @@ export default function ProfilePage() {
           </div>
         </div>
         
-        {/* Actions */}
+        {/* Actions - Removed Edit Profile button */}
         <div className="flex flex-col space-y-3">
-          <Button
-            onClick={() => router.push('/profile/edit')}
-            className="bg-[#6C0002] text-white hover:bg-[#8C0003]"
-          >
-            Edit Profile
-          </Button>
-          
           <Button
             onClick={signOut}
             variant="outline"
