@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import SwipeableCard from '@/components/SwipeableCard';
+import { X, Check } from 'lucide-react';
 
 interface User {
   id: string;
@@ -163,19 +164,27 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-[#F5F5F5] flex flex-col">
       {/* Cards container with proper spacing */}
-      <div className="flex-1 flex flex-col items-center justify-between px-4 py-4">
-        <div className="w-full max-w-sm mx-auto flex flex-col" style={{ height: 'calc(100vh - 180px)' }}>
+      <div className="flex-1 flex flex-col items-center px-4 relative">
+        {/* Wrapper to position cards above buttons */}
+        <div 
+          className="w-full max-w-sm absolute"
+          style={{ 
+            bottom: '140px', // Position cards just above the buttons
+            left: '50%',
+            transform: 'translateX(-50%)'
+          }}
+        >
           {/* Cards */}
-          <div className="relative flex-1 mb-4">
+          <div className="relative" style={{ height: '500px' }}>
             {users.slice(currentIndex, currentIndex + 3).map((user, index) => (
               <div
                 key={user.id}
                 className="absolute w-full transition-all duration-300 ease-out"
                 style={{
-                  zIndex: users.length - index,
+                  zIndex: 10 - index, // Lower z-index for cards
                   transform: `scale(${1 - index * 0.05}) translateY(${index * 10}px)`,
                   opacity: index === 0 ? 1 : 0.8,
-                  top: 0,
+                  pointerEvents: index === 0 ? 'auto' : 'none',
                   left: 0,
                   right: 0,
                   bottom: 0
@@ -190,36 +199,40 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="fixed bottom-20 left-0 right-0 flex justify-center space-x-4 p-4 bg-[#F5F5F5]">
-          <Button
+        {/* Bottom Action Buttons */}
+        <div 
+          className="fixed left-0 right-0 flex justify-center items-center space-x-8 p-4" 
+          style={{ 
+            bottom: '80px', // Position above the bottom navigation
+            zIndex: 50 // Ensure buttons are above cards
+          }}
+        >
+          <button
             onClick={() => {
               const currentUser = users[currentIndex];
               if (currentUser) {
                 handleSwipe('left', currentUser.id);
-              } else {
-                toast.error('No more profiles to show');
               }
             }}
             disabled={currentIndex >= users.length}
-            className="w-24 h-14 bg-white border-2 border-red-500 hover:bg-red-50 text-red-500 text-lg shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-white border-2 border-red-500 flex items-center justify-center shadow-lg hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{ zIndex: 50 }}
           >
-            No
-          </Button>
-          <Button
+            <X className="w-7 h-7 md:w-8 md:h-8 text-red-500" />
+          </button>
+          <button
             onClick={() => {
               const currentUser = users[currentIndex];
               if (currentUser) {
                 handleSwipe('right', currentUser.id);
-              } else {
-                toast.error('No more profiles to show');
               }
             }}
             disabled={currentIndex >= users.length}
-            className="w-24 h-14 bg-[#6C0002] hover:bg-[#8C0003] text-white text-lg shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-green-500 flex items-center justify-center shadow-lg hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{ zIndex: 50 }}
           >
-            Yes
-          </Button>
+            <Check className="w-7 h-7 md:w-8 md:h-8 text-white" />
+          </button>
         </div>
       </div>
     </div>
