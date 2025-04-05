@@ -146,7 +146,7 @@ type AuthContextType = {
 Required environment variables:
 ```env
 NEXT_PUBLIC_SUPABASE_URL=your-project-url
-NEXT_PUBLIC_SUPABASE_KEY=your-anon-key
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 ```
 
 ## Development Guidelines
