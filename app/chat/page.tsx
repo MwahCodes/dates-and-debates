@@ -140,7 +140,7 @@ export default function ChatPage() {
         <Card className="p-6 text-center max-w-sm w-full">
           <h2 className="text-xl font-semibold mb-2">No matches yet</h2>
           <p className="text-[#666666]">
-            When you match with someone, you'll be able to chat with them here.
+            When you&apos;ll be able to chat with them here.
           </p>
         </Card>
       </div>
@@ -184,7 +184,7 @@ export default function ChatPage() {
                   </div>
                   {partner.last_message && (
                     <p className="text-gray-600 truncate">
-                      {partner.last_message.is_sender ? 'You: ' : ''}{partner.last_message.content}
+                      {partner.last_message.is_sender ? "You: " : ""}{partner.last_message.content}
                     </p>
                   )}
                 </div>

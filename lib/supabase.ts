@@ -17,10 +17,11 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     storage: {
       getItem: (key) => {
         if (typeof window !== 'undefined') {
-          return document.cookie
+          const value = document.cookie
             .split('; ')
             .find((row) => row.startsWith(`${key}=`))
             ?.split('=')[1];
+          return value || null;
         }
         return null;
       },
