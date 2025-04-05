@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import Image from 'next/image';
+import { toast } from 'sonner';
 
 interface UserProfile {
   id: string;
@@ -33,6 +34,78 @@ export default function ProfilePage() {
   const { user, supabase } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImageClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !profile) return;
+
+    try {
+      setUploading(true);
+
+      // Check file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        throw new Error('File size must be less than 5MB');
+      }
+
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        throw new Error('File must be an image');
+      }
+
+      // Create a unique file name using the user's name and timestamp
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${profile.name.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}.${fileExt}`;
+
+      // Upload the file to Supabase Storage
+      const { error: uploadError, data } = await supabase.storage
+        .from('profile-images')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
+
+      if (uploadError) {
+        console.error('Upload error details:', uploadError);
+        throw new Error(uploadError.message || 'Error uploading file');
+      }
+
+      // Get the public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('profile-images')
+        .getPublicUrl(fileName);
+
+      // Update the user's profile with the new image URL
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({ profile_picture_url: publicUrl })
+        .eq('id', profile.id);
+
+      if (updateError) {
+        console.error('Update error details:', updateError);
+        throw new Error(updateError.message || 'Error updating profile');
+      }
+
+      // Update local state
+      setProfile(prev => prev ? { ...prev, profile_picture_url: publicUrl } : null);
+      toast.success('Profile picture updated successfully');
+
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to update profile picture');
+    } finally {
+      setUploading(false);
+      // Reset the file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -81,14 +154,30 @@ export default function ProfilePage() {
       <div className="max-w-sm mx-auto space-y-6">
         {/* Profile Picture and Name */}
         <div className="text-center">
-          <div className="relative w-32 h-32 mx-auto mb-4 rounded-full overflow-hidden border-4 border-white shadow-lg">
+          <div 
+            className="relative w-32 h-32 mx-auto mb-4 rounded-full overflow-hidden border-4 border-white shadow-lg cursor-pointer group"
+            onClick={handleImageClick}
+          >
             <Image
               src={profile.profile_picture_url || '/placeholder-profile.jpg'}
               alt={profile.name}
               fill
               className="object-cover"
             />
+            {/* Overlay with upload text */}
+            <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+              <p className="text-white text-sm">
+                {uploading ? 'Uploading...' : 'Update Photo'}
+              </p>
+            </div>
           </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleImageUpload}
+          />
           <h1 className="text-2xl font-hannari text-[#1A1A1A]">{profile.name}</h1>
         </div>
 
