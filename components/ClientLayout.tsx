@@ -20,7 +20,7 @@ export default function ClientLayout({
   return (
     <div className="flex min-h-screen flex-col bg-white">
       {!isRootPage && <LogoHeader />}
-      <main className={`flex-1 ${!isRootPage ? 'pt-16' : ''} ${showBottomNav ? 'pb-20' : ''}`}>
+      <main className={`flex-1 ${!isRootPage ? 'pt-16' : ''} ${showBottomNav ? 'pb-16' : ''}`}>
         {children}
       </main>
       {showBottomNav && <BottomNavigation />}

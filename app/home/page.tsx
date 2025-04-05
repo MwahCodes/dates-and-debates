@@ -154,8 +154,8 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-[#F5F5F5] flex flex-col">
       {/* Cards container with proper spacing */}
-      <div className="flex-1 flex items-center justify-center px-4 py-8">
-        <div className="w-full max-w-sm mx-auto relative" style={{ height: '80vh' }}>
+      <div className="flex-1 flex items-center justify-center px-4 py-4">
+        <div className="w-full max-w-sm mx-auto relative" style={{ height: 'calc(100vh - 120px)' }}>
           {users.slice(currentIndex, currentIndex + 3).map((user, index) => (
             <div
               key={user.id}
