@@ -142,7 +142,10 @@ export default function SignUpPage() {
         throw new Error('Please fill in all required fields');
       }
 
-      // Create auth user
+      // Calculate height in inches
+      const heightInInches = parseInt(height.split("'")[0]) * 12 + parseInt(height.split("'")[1].replace('"', ''));
+
+      // Create auth user with profile data in metadata
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
@@ -151,7 +154,7 @@ export default function SignUpPage() {
             name,
             birthday: dateInput,
             education_level: education,
-            height: parseInt(height.split("'")[0]) * 12 + parseInt(height.split("'")[1].replace('"', '')),
+            height: heightInInches,
             weight: parseInt(weight),
             mbti_type: mbtiType || null,
           }
@@ -164,26 +167,6 @@ export default function SignUpPage() {
 
       if (!signUpData.user?.id) {
         throw new Error('Failed to create user account');
-      }
-
-      // Create user profile
-      const { error: profileError } = await supabase
-        .from('users')
-        .insert({
-          id: signUpData.user.id,
-          name,
-          birthday: dateInput,
-          education_level: education,
-          height: parseInt(height.split("'")[0]) * 12 + parseInt(height.split("'")[1].replace('"', '')),
-          weight: parseInt(weight),
-          mbti_type: mbtiType || null,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        });
-
-      if (profileError) {
-        console.error('Profile creation error:', profileError);
-        throw new Error('Failed to create user profile. Please try again.');
       }
 
       // Show success message and redirect
