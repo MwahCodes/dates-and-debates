@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import SwipeableCard from '@/components/SwipeableCard';
+import { X, Check } from 'lucide-react';
 
 interface User {
   id: string;
@@ -43,13 +44,13 @@ export default function HomePage() {
         if (swipedError) throw swipedError;
 
         const swipedIds = swipedUsers?.map(s => s.swiped_id) || [];
-
+        
         // Get potential matches
         const { data, error } = await supabase
           .from('users')
           .select('*')
           .neq('id', user.id)
-          .not('id', 'in', `(${swipedIds.join(',')})`)
+          .not('id', 'in', `(${swipedIds.length > 0 ? swipedIds.join(',') : 'null'})`)
           .limit(10);
 
         if (error) throw error;
@@ -128,17 +129,58 @@ export default function HomePage() {
       }
 
       // Move to next profile
-      setCurrentIndex(prevIndex => {
-        const nextIndex = prevIndex + 1;
-        if (nextIndex >= users.length) {
-          toast.info('No more profiles to show');
-        }
-        return nextIndex;
-      });
+      const nextIndex = currentIndex + 1;
+      if (nextIndex >= users.length) {
+        // If we're at the last profile, fetch new ones
+        await fetchUsers();
+      } else {
+        // Otherwise just move to next profile
+        setCurrentIndex(nextIndex);
+      }
 
     } catch (error) {
       console.error('Error processing swipe:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to process swipe');
+    }
+  };
+
+  // Function to fetch users (moved outside useEffect for reuse)
+  const fetchUsers = async () => {
+    if (!user) return;
+
+    try {
+      setIsLoading(true); // Add loading state while fetching
+
+      const { data: swipedUsers, error: swipedError } = await supabase
+        .from('swipes')
+        .select('swiped_id')
+        .eq('swiper_id', user.id);
+
+      if (swipedError) throw swipedError;
+
+      const swipedIds = swipedUsers?.map(s => s.swiped_id) || [];
+
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .neq('id', user.id)
+        .not('id', 'in', `(${swipedIds.length > 0 ? swipedIds.join(',') : 'null'})`)
+        .limit(10);
+
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        setUsers(data);
+        setCurrentIndex(0); // Reset index when new users are fetched
+      } else {
+        setUsers([]);
+        toast.info('No more profiles available');
+      }
+    } catch (err) {
+      console.error('Error fetching users:', err);
+      toast.error('Failed to load users');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -207,10 +249,12 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="fixed bottom-20 left-0 right-0 flex justify-center space-x-4 p-4 bg-[#F5F5F5]">
+        {/* Action Buttons - Updated positioning and z-index */}
+        <div className="fixed bottom-20 left-0 right-0 flex justify-center space-x-8 p-4 bg-transparent" style={{ zIndex: 1000 }}>
           <Button
+            type="button"
             onClick={() => {
+              if (isLoading) return;
               const currentUser = users[currentIndex];
               if (currentUser) {
                 handleSwipe('left', currentUser.id);
@@ -218,13 +262,15 @@ export default function HomePage() {
                 toast.error('No more profiles to show');
               }
             }}
-            disabled={currentIndex >= users.length}
-            className="w-24 h-14 bg-white border-2 border-red-500 hover:bg-red-50 text-red-500 text-lg shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={isLoading || currentIndex >= users.length}
+            className="w-16 h-16 rounded-full bg-white border-2 border-red-500 hover:bg-red-50 text-red-500 text-lg shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center cursor-pointer"
           >
-            No
+            <X className="w-8 h-8" />
           </Button>
           <Button
+            type="button"
             onClick={() => {
+              if (isLoading) return;
               const currentUser = users[currentIndex];
               if (currentUser) {
                 handleSwipe('right', currentUser.id);
@@ -232,10 +278,10 @@ export default function HomePage() {
                 toast.error('No more profiles to show');
               }
             }}
-            disabled={currentIndex >= users.length}
-            className="w-24 h-14 bg-[#6C0002] hover:bg-[#8C0003] text-white text-lg shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={isLoading || currentIndex >= users.length}
+            className="w-16 h-16 rounded-full bg-green-500 hover:bg-green-600 text-white text-lg shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center cursor-pointer"
           >
-            Yes
+            <Check className="w-8 h-8" />
           </Button>
         </div>
       </div>
