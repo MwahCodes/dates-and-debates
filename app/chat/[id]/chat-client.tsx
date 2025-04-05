@@ -38,24 +38,41 @@ export default function ChatClient({ chatPartnerId }: ChatClientProps): ReactEle
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [userMessageCount, setUserMessageCount] = useState(0);
+  const [partnerMessageCount, setPartnerMessageCount] = useState(0);
+
+  // Prompts array
+  const prompts = [
+    "Do you like Pineapple on pizza?",
+    "Do you think the moon landing was faked?",
+    "Do you think vaccines are safe?",
+    "Who is your favorite sports team?",
+    "Cats or dogs?",
+  ];
 
   // Function to fetch messages
   const fetchMessages = async () => {
     if (!user) return;
-    
+
     try {
       const { data: messagesData, error: messagesError } = await supabase
         .from('messages')
         .select('*')
-        .or(`and(sender_id.eq.${user.id},receiver_id.eq.${chatPartnerId}),and(sender_id.eq.${chatPartnerId},receiver_id.eq.${user.id})`)
+        .or(
+          `and(sender_id.eq.${user.id},receiver_id.eq.${chatPartnerId}),and(sender_id.eq.${chatPartnerId},receiver_id.eq.${user.id})`
+        )
         .order('created_at', { ascending: true });
 
       if (messagesError) throw messagesError;
-      
+
       // Only update if there are new messages to avoid unnecessary re-renders
-      if (messagesData && (messages.length !== messagesData.length || 
-          (messagesData.length > 0 && messages.length > 0 && 
-           messagesData[messagesData.length - 1].id !== messages[messages.length - 1].id))) {
+      if (
+        messagesData &&
+        (messages.length !== messagesData.length ||
+          (messagesData.length > 0 &&
+            messages.length > 0 &&
+            messagesData[messagesData.length - 1].id !== messages[messages.length - 1].id))
+      ) {
         setMessages(messagesData);
       }
     } catch (error) {
@@ -63,11 +80,50 @@ export default function ChatClient({ chatPartnerId }: ChatClientProps): ReactEle
     }
   };
 
+  // Function to check if the sender has sent a message before
+  const checkAndShowPrompt = async () => {
+    try {
+      const { data: existingMessages, error } = await supabase
+        .from('messages')
+        .select('id')
+        .eq('sender_id', user?.id || '')
+        .eq('receiver_id', chatPartnerId)
+        .limit(1);
+
+      console.log('Existing messages:', existingMessages);
+
+      if (error) {
+        console.error('Error checking messages:', error);
+        return;
+      }
+
+      // If no messages exist, show a random prompt
+      if (!existingMessages || existingMessages.length === 0) {
+        const randomPrompt = prompts[Math.floor(Math.random() * prompts.length)];
+        
+        // Add the prompt as a shared message bubble
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          {
+            id: `prompt-${Date.now()}`, // Unique ID for the prompt
+            sender_id: 'system', // Use 'system' or a special ID for shared messages
+            receiver_id: user?.id || '',
+            content: randomPrompt,
+            created_at: new Date().toISOString(),
+          },
+        ]);
+      }
+    } catch (error) {
+      console.error('Error checking and showing prompt:', error);
+    }
+  };
+
   useEffect(() => {
-    if (!user) {
+    if (!user?.id) {
       router.push('/login');
       return;
     }
+
 
     const fetchChatPartner = async () => {
       try {
@@ -80,13 +136,15 @@ export default function ChatClient({ chatPartnerId }: ChatClientProps): ReactEle
 
         if (swipeError) throw swipeError;
 
-        const hasMutualLike = swipes?.some(s1 => 
-          swipes.some(s2 => 
-            ((s1.swiper_id === user.id && s1.swiped_id === chatPartnerId) ||
-             (s1.swiper_id === chatPartnerId && s1.swiped_id === user.id)) &&
-            ((s2.swiper_id === user.id && s2.swiped_id === chatPartnerId) ||
-             (s2.swiper_id === chatPartnerId && s2.swiped_id === user.id))
-          )
+        const hasMutualLike = swipes?.some(
+          (s1) =>
+            swipes.some(
+              (s2) =>
+                ((s1.swiper_id === user.id && s1.swiped_id === chatPartnerId) ||
+                  (s1.swiper_id === chatPartnerId && s1.swiped_id === user.id)) &&
+                ((s2.swiper_id === user.id && s2.swiped_id === chatPartnerId) ||
+                  (s2.swiper_id === chatPartnerId && s2.swiped_id === user.id))
+            )
         );
 
         if (!hasMutualLike) {
@@ -107,6 +165,10 @@ export default function ChatClient({ chatPartnerId }: ChatClientProps): ReactEle
 
         // Initial fetch of messages
         await fetchMessages();
+
+        // Check if the sender has sent a message before and show a prompt if not
+        await checkAndShowPrompt();
+
         // Ensure we scroll to the bottom on initial load
         setTimeout(scrollToBottom, 100);
       } catch (error) {
@@ -145,7 +207,7 @@ export default function ChatClient({ chatPartnerId }: ChatClientProps): ReactEle
         clearInterval(pollingIntervalRef.current);
       }
     };
-  }, [user, chatPartnerId, supabase, router]);
+  }, [user?.id, chatPartnerId]);
 
   const scrollToBottom = () => {
     if (messagesContainerRef.current) {
@@ -165,19 +227,17 @@ export default function ChatClient({ chatPartnerId }: ChatClientProps): ReactEle
     if (!newMessage.trim() || !chatPartner) return;
 
     try {
-      const { error } = await supabase
-        .from('messages')
-        .insert([
-          {
-            sender_id: user?.id,
-            receiver_id: chatPartner.id,
-            content: newMessage.trim()
-          }
-        ]);
+      const { error } = await supabase.from('messages').insert([
+        {
+          sender_id: user?.id,
+          receiver_id: chatPartner.id,
+          content: newMessage.trim(),
+        },
+      ]);
 
       if (error) throw error;
       setNewMessage('');
-      
+
       // Immediately fetch messages after sending to update the UI faster
       fetchMessages();
     } catch (error) {
@@ -190,10 +250,10 @@ export default function ChatClient({ chatPartnerId }: ChatClientProps): ReactEle
     return (
       <div className="flex flex-col h-screen items-center justify-center bg-[#F5F5F5]">
         <p className="text-red-500">{error}</p>
-        <Button 
-          variant="outline" 
+        <Button
+          variant="outline"
           className="mt-4"
-          onClick={() => window.location.href = '/chat'}
+          onClick={() => (window.location.href = '/chat')}
         >
           Return to Chats
         </Button>
@@ -247,10 +307,7 @@ export default function ChatClient({ chatPartnerId }: ChatClientProps): ReactEle
       </div>
 
       {/* Messages - Scrollable area with newest messages at the bottom */}
-      <div 
-        ref={messagesContainerRef}
-        className="flex-1 overflow-y-auto p-4 pb-25"
-      >
+      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 pb-25">
         <div className="space-y-4 flex flex-col">
           {messages.map((message) => (
             <div
@@ -268,7 +325,7 @@ export default function ChatClient({ chatPartnerId }: ChatClientProps): ReactEle
                 <p className="text-xs mt-1 opacity-70">
                   {new Date(message.created_at).toLocaleTimeString([], {
                     hour: '2-digit',
-                    minute: '2-digit'
+                    minute: '2-digit',
                   })}
                 </p>
               </div>
