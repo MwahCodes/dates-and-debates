@@ -60,3 +60,5 @@ SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 - Set up proper logging
 - Monitor database performance
 - Regular backups 
+
+
