@@ -116,13 +116,13 @@ export default function MyersBriggs() {
           <div className="space-y-4">
             <Button 
               className="w-full bg-[#6C0002] text-white py-6 rounded-lg text-lg hover:bg-[#8C0003] transition-colors"
-              onClick={() => router.push('/next-page')}
+              onClick={() => router.push('/home')}
             >
               Continue
             </Button>
             
             <button
-              onClick={() => router.push('/next-page')}
+              onClick={() => router.push('/home')}
               className="w-full text-center text-[#666666] hover:text-[#6C0002] transition-colors"
             >
               Skip
