@@ -12,15 +12,32 @@ interface SwipeableCardProps {
 export default function SwipeableCard({ name, imageUrl, onSwipeLeft, onSwipeRight }: SwipeableCardProps) {
   const [offset, setOffset] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
+  const [isLeaving, setIsLeaving] = useState(false);
+
+  const handleSwipe = (direction: 'left' | 'right') => {
+    setIsLeaving(true);
+    const targetOffset = direction === 'left' ? -window.innerWidth : window.innerWidth;
+    setOffset(targetOffset);
+    
+    // Wait for animation to complete before calling the handler
+    setTimeout(() => {
+      direction === 'left' ? onSwipeLeft() : onSwipeRight();
+      // Reset for next card
+      setOffset(0);
+      setIsLeaving(false);
+    }, 300);
+  };
 
   const handlers = useSwipeable({
     onSwiping: (event) => {
-      setOffset(event.deltaX);
-      setIsDragging(true);
+      if (!isLeaving) {
+        setOffset(event.deltaX);
+        setIsDragging(true);
+      }
     },
     onSwipedLeft: () => {
       if (Math.abs(offset) > 100) {
-        onSwipeLeft();
+        handleSwipe('left');
       } else {
         setOffset(0);
       }
@@ -28,7 +45,7 @@ export default function SwipeableCard({ name, imageUrl, onSwipeLeft, onSwipeRigh
     },
     onSwipedRight: () => {
       if (Math.abs(offset) > 100) {
-        onSwipeRight();
+        handleSwipe('right');
       } else {
         setOffset(0);
       }
@@ -44,13 +61,16 @@ export default function SwipeableCard({ name, imageUrl, onSwipeLeft, onSwipeRigh
     trackTouch: true,
   });
 
+  const rotation = offset * 0.1;
+  const opacity = Math.min(Math.abs(offset) / 100, 1);
+
   return (
     <div
       {...handlers}
-      className="relative w-full max-w-sm aspect-[4/5] rounded-xl overflow-hidden shadow-lg transition-transform duration-300 ease-out"
+      className="relative w-full max-w-sm aspect-[4/5] rounded-xl overflow-hidden shadow-lg touch-none select-none"
       style={{
-        transform: `translateX(${offset}px) rotate(${offset * 0.1}deg)`,
-        transition: isDragging ? 'none' : 'all 0.3s ease-out',
+        transform: `translateX(${offset}px) rotate(${rotation}deg)`,
+        transition: isDragging || isLeaving ? 'transform 0.3s ease-out' : 'transform 0.5s ease-out',
       }}
     >
       <div className="relative w-full h-full">
@@ -72,18 +92,16 @@ export default function SwipeableCard({ name, imageUrl, onSwipeLeft, onSwipeRigh
         <h2 className="text-2xl font-semibold text-white">{name}</h2>
       </div>
 
-      {/* Swipe indicators */}
+      {/* Swipe indicators - now on opposite sides */}
       <div
-        className={`absolute top-4 left-4 bg-red-500 text-white px-3 py-1 rounded-full transform transition-opacity ${
-          offset < -50 ? 'opacity-100' : 'opacity-0'
-        }`}
+        className={`absolute top-4 right-4 bg-red-500 text-white px-3 py-1 rounded-full transition-opacity duration-200`}
+        style={{ opacity: offset < 0 ? opacity : 0 }}
       >
         NOPE
       </div>
       <div
-        className={`absolute top-4 right-4 bg-green-500 text-white px-3 py-1 rounded-full transform transition-opacity ${
-          offset > 50 ? 'opacity-100' : 'opacity-0'
-        }`}
+        className={`absolute top-4 left-4 bg-green-500 text-white px-3 py-1 rounded-full transition-opacity duration-200`}
+        style={{ opacity: offset > 0 ? opacity : 0 }}
       >
         LIKE
       </div>
