@@ -1,7 +1,7 @@
 'use client';
 
 import { usePathname, useRouter } from 'next/navigation';
-import { Home, MessageCircle, User } from 'lucide-react';
+import { Home, MessageCircle, User, Award } from 'lucide-react';
 
 export default function BottomNavigation() {
   const router = useRouter();
@@ -35,6 +35,16 @@ export default function BottomNavigation() {
         >
           <MessageCircle size={24} />
           <span className="text-xs mt-1">Chat</span>
+        </button>
+
+        <button
+          onClick={() => handleNavigation('/leaderboard')}
+          className={`flex flex-col items-center p-2 w-full h-full active:bg-gray-100 ${
+            pathname === '/leaderboard' ? 'text-[#6C0002]' : 'text-gray-600'
+          }`}
+        >
+          <Award size={24} />
+          <span className="text-xs mt-1">Ratings</span>
         </button>
 
         <button

@@ -9,4 +9,7 @@ export type User = {
   profile_picture_url: string | null;
   created_at: string | null;
   updated_at: string | null;
+  average_rating?: number;
+  rating_count?: number;
+  total_rating?: number;
 }; 

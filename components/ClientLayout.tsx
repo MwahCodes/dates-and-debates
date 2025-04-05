@@ -40,7 +40,7 @@ export default function ClientLayout({
   // Control bottom navigation visibility
   useEffect(() => {
     // Show bottom navigation only for these paths 
-    const navPaths = ['/home', '/chat', '/profile'];
+    const navPaths = ['/home', '/chat', '/profile', '/leaderboard'];
     const shouldShow = navPaths.some(path => 
       pathname === path || pathname.startsWith(`${path}/`)
     );

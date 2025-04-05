@@ -20,6 +20,9 @@ interface UserProfile {
   profile_picture_url?: string | null;
   created_at: string;
   updated_at?: string;
+  average_rating?: number;
+  rating_count?: number;
+  total_rating?: number;
 }
 
 export default function ProfilePage() {
@@ -62,6 +65,19 @@ export default function ProfilePage() {
           }
           
           throw error;
+        }
+
+        // Get rating data
+        const { data: ratingData, error: ratingError } = await supabase
+          .rpc('get_leaderboard_data')
+          .eq('id', user.id)
+          .single();
+
+        if (!ratingError && ratingData) {
+          // Combine profile data with rating data
+          data.average_rating = parseFloat(ratingData.average_rating);
+          data.rating_count = parseInt(ratingData.rating_count);
+          data.total_rating = parseInt(ratingData.total_rating);
         }
 
         console.log('Profile data retrieved:', data);
@@ -208,6 +224,56 @@ export default function ProfilePage() {
             <div>
               <p className="text-sm text-[#666666]">Member since</p>
               <p className="text-[#1A1A1A]">{formatDate(profile.created_at)}</p>
+            </div>
+          </div>
+
+          {/* Rating information */}
+          <div className="mt-6 pt-6 border-t border-[#E0E0E0] space-y-4">
+            <h2 className="text-lg font-semibold text-[#1A1A1A]">Your Rating</h2>
+            
+            {profile.rating_count && profile.rating_count > 0 ? (
+              <div className="flex space-x-4">
+                <div className="flex-1">
+                  <p className="text-sm text-[#666666]">Average Rating</p>
+                  <div className="flex items-center">
+                    <span className="text-xl font-bold text-[#1A1A1A] mr-1">
+                      {profile.average_rating?.toFixed(1)}
+                    </span>
+                    <span className="text-sm text-[#666666]">/10</span>
+                  </div>
+                </div>
+                
+                <div className="flex-1">
+                  <p className="text-sm text-[#666666]">Total Ratings</p>
+                  <p className="text-xl font-bold text-[#1A1A1A]">
+                    {profile.rating_count}
+                  </p>
+                </div>
+                
+                <div className="flex-1">
+                  <p className="text-sm text-[#666666]">Total Score</p>
+                  <p className="text-xl font-bold text-[#1A1A1A]">
+                    {profile.total_rating}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-gray-50 rounded-lg p-4 text-center">
+                <p className="text-[#666666]">No ratings yet</p>
+                <p className="text-sm text-[#666666]">
+                  When others rate you, your score will appear here
+                </p>
+              </div>
+            )}
+            
+            <div className="mt-2">
+              <Button
+                onClick={() => router.push('/leaderboard')}
+                variant="outline"
+                className="w-full border-[#6C0002] text-[#6C0002] hover:bg-[#6C0002] hover:text-white"
+              >
+                View Leaderboard
+              </Button>
             </div>
           </div>
         </div>
