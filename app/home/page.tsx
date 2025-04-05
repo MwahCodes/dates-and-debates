@@ -4,35 +4,49 @@ import { useEffect, useState } from 'react';
 import BottomNavigation from '@/components/BottomNavigation';
 import SwipeableCard from '@/components/SwipeableCard';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/lib/auth-context';
+import ProtectedRoute from '@/components/ProtectedRoute';
 
 type UserData = {
+  id: string;
   name: string;
   profile_picture_url: string | null;
 };
 
-interface DebugInfo {
-  type: 'query_result' | 'connection_error' | 'unexpected_error';
-  data?: UserData[];
-  error?: {
-    message: string;
-    details?: string;
-    hint?: string;
-  };
-}
+type DebugInfo = {
+  type: string;
+  data?: any;
+  error?: any;
+};
 
 export default function HomePage() {
+  const { user } = useAuth();
   const [users, setUsers] = useState<UserData[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [debugInfo, setDebugInfo] = useState<DebugInfo | null>(null);
 
   useEffect(() => {
     const fetchUsers = async () => {
+      if (!user) return;
+
       try {
         console.log('Starting data fetch...');
         
+        // Get users that haven't been swiped on yet
+        const { data: swipedUsers, error: swipedError } = await supabase
+          .from('swipes')
+          .select('swiped_id')
+          .eq('swiper_id', user.id);
+
+        if (swipedError) throw swipedError;
+
+        const swipedIds = swipedUsers?.map(swipe => swipe.swiped_id) || [];
+
+        // Get users to show (excluding current user and already swiped users)
         const { data, error: supabaseError } = await supabase
           .from('users')
-          .select('name, profile_picture_url')
+          .select('id, name, profile_picture_url')
+          .not('id', 'in', [...swipedIds, user.id])
           .limit(10);
 
         console.log('Query result:', { data, error: supabaseError });
@@ -50,7 +64,7 @@ export default function HomePage() {
 
         if (!data || data.length === 0) {
           console.error('No data returned from Supabase');
-          setError('No user data available');
+          setError('No more profiles to show');
           return;
         }
 
@@ -70,15 +84,66 @@ export default function HomePage() {
     };
 
     fetchUsers();
-  }, []);
+  }, [user]);
+
+  const handleSwipe = async (direction: 'left' | 'right', swipedUserId: string) => {
+    if (!user) return;
+
+    try {
+      // Record the swipe
+      const { error: swipeError } = await supabase
+        .from('swipes')
+        .insert({
+          swiper_id: user.id,
+          swiped_id: swipedUserId,
+          direction
+        });
+
+      if (swipeError) throw swipeError;
+
+      // If it's a right swipe, check for a match
+      if (direction === 'right') {
+        const { data: existingSwipe, error: matchError } = await supabase
+          .from('swipes')
+          .select('*')
+          .eq('swiper_id', swipedUserId)
+          .eq('swiped_id', user.id)
+          .eq('direction', 'right')
+          .single();
+
+        if (matchError && matchError.code !== 'PGRST116') throw matchError;
+
+        // If there's a match, create a match record
+        if (existingSwipe) {
+          const { error: createMatchError } = await supabase
+            .from('matches')
+            .insert({
+              user1_id: user.id,
+              user2_id: swipedUserId
+            });
+
+          if (createMatchError) throw createMatchError;
+        }
+      }
+
+      // Remove the swiped user from the list
+      setUsers(prevUsers => prevUsers.filter(u => u.id !== swipedUserId));
+    } catch (err) {
+      console.error('Error handling swipe:', err);
+      setError('Failed to process swipe');
+    }
+  };
 
   const handleSwipeLeft = () => {
-    setUsers((prevUsers) => prevUsers.slice(1));
+    if (users.length > 0) {
+      handleSwipe('left', users[0].id);
+    }
   };
 
   const handleSwipeRight = () => {
-    // Here you could implement matching logic
-    setUsers((prevUsers) => prevUsers.slice(1));
+    if (users.length > 0) {
+      handleSwipe('right', users[0].id);
+    }
   };
 
   // Show error with helpful debug info
@@ -115,25 +180,25 @@ export default function HomePage() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      {/* Main content with max-width container */}
-      <div className="flex-1 flex flex-col items-center justify-center p-4">
-        <div className="w-full max-w-md mx-auto">
-          <SwipeableCard
-            name={users[0].name}
-            imageUrl={users[0].profile_picture_url || '/placeholder-profile.jpg'}
-            onSwipeLeft={handleSwipeLeft}
-            onSwipeRight={handleSwipeRight}
-          />
+    <ProtectedRoute>
+      <div className="min-h-screen bg-background flex flex-col">
+        <div className="flex-1 flex flex-col items-center justify-center p-4">
+          <div className="w-full max-w-md mx-auto">
+            <SwipeableCard
+              name={users[0].name}
+              imageUrl={users[0].profile_picture_url || '/placeholder-profile.jpg'}
+              onSwipeLeft={handleSwipeLeft}
+              onSwipeRight={handleSwipeRight}
+            />
+          </div>
         </div>
-      </div>
 
-      {/* Bottom navigation with max-width container */}
-      <div className="w-full flex justify-center">
-        <div className="w-full max-w-md">
-          <BottomNavigation />
+        <div className="w-full flex justify-center">
+          <div className="w-full max-w-md">
+            <BottomNavigation />
+          </div>
         </div>
       </div>
-    </div>
+    </ProtectedRoute>
   );
 } 
