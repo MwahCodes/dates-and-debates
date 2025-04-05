@@ -21,63 +21,52 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      // Sign in with Supabase
-      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+      // Step 1: Sign in with Supabase
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (signInError) {
-        throw new Error(signInError.message);
+      if (authError) {
+        console.error('Authentication error:', authError);
+        throw new Error(authError.message);
       }
 
-      if (!data?.user) {
-        throw new Error('No user data returned');
+      if (!authData?.user?.id) {
+        throw new Error('No user ID returned from authentication');
       }
 
-      // Check if user exists in the users table
+      // Step 2: Check user in the users table
       const { data: userData, error: userError } = await supabase
         .from('users')
         .select('*')
-        .eq('id', data.user.id)
+        .eq('id', authData.user.id)
         .single();
 
       if (userError) {
+        console.error('User fetch error:', userError);
+        
         if (userError.code === 'PGRST116') {
-          // No user exists in the users table, create a new user record
-          const { error: insertError } = await supabase
-            .from('users')
-            .insert([
-              {
-                id: data.user.id,
-                name: '', // Empty name will trigger profile setup
-                birthday: null, // Null birthday will trigger profile setup
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-              }
-            ]);
-
-          if (insertError) {
-            throw new Error('Failed to create user profile');
-          }
-
+          // No user exists in the users table, redirect to profile setup
           toast.info('Please complete your profile setup');
-          router.push('/profile-setup');
+          router.push(`/profile-setup?userId=${authData.user.id}`);
           return;
         }
+        
         throw new Error('Error fetching user data');
       }
 
-      // Check if profile is complete
+      // Step 3: Check if user has completed their profile
       if (!userData.name || !userData.birthday) {
+        // User exists but profile is incomplete
         toast.info('Please complete your profile information');
-        router.push('/profile-setup');
+        router.push(`/profile-setup?userId=${authData.user.id}`);
         return;
       }
 
-      // Successful login with complete profile
+      // Step 4: Successful login with complete profile
       toast.success('Successfully signed in');
-      router.push('/home');
+      router.push(`/home?userId=${authData.user.id}`);
       
     } catch (err) {
       console.error('Login error:', err);
