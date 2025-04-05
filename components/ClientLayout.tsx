@@ -1,11 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 import LogoHeader from "@/components/LogoHeader";
 import BottomNavigation from "@/components/BottomNavigation";
 import { useAuth } from '@/contexts/AuthContext';
 import ProtectedRoute from './ProtectedRoute';
+
+// Define public routes that don't require authentication
+const PUBLIC_ROUTES = ['/', '/login', '/signup', '/password-reset'];
 
 export default function ClientLayout({
   children,
@@ -13,50 +16,45 @@ export default function ClientLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const { user, supabase, isLoading } = useAuth();
+  const { user, refreshSession } = useAuth();
   const [showBottomNav, setShowBottomNav] = useState(false);
+  const refreshAttemptedRef = useRef(false);
   
-  // Check for token expiration and refresh if needed
+  // Session refresh - only once on mount for authenticated users
   useEffect(() => {
-    const checkSession = async () => {
-      if (!isLoading && user) {
-        try {
-          // Periodically refresh the session to ensure it stays valid
-          await supabase.auth.refreshSession();
-        } catch (error) {
-          console.error('Error refreshing session:', error);
-        }
-      }
-    };
+    // Skip if no user or if we've already attempted a refresh in this session
+    if (!user || refreshAttemptedRef.current) return;
     
-    checkSession();
+    console.log('Performing initial session refresh');
     
-    // Set up an interval to check session every 30 minutes
-    const interval = setInterval(checkSession, 30 * 60 * 1000);
+    // Mark that we've attempted a refresh
+    refreshAttemptedRef.current = true;
     
-    return () => clearInterval(interval);
-  }, [user, supabase, isLoading]);
+    // Only refresh once on mount, not repeatedly
+    refreshSession();
+    
+    // We don't need to refresh every 15 minutes - the session is auto-refreshed by Supabase
+    // when needed, and manual refreshes are causing rate limiting
+  }, [user, refreshSession]);
 
+  // Control bottom navigation visibility
   useEffect(() => {
-    // Paths that should show the bottom navigation
-    const showNavPaths = ['/home', '/chat', '/profile'];
-    
-    // Check if current path should show bottom nav
-    const shouldShowBottomNav = showNavPaths.some(path => 
+    // Show bottom navigation only for these paths 
+    const navPaths = ['/home', '/chat', '/profile'];
+    const shouldShow = navPaths.some(path => 
       pathname === path || pathname.startsWith(`${path}/`)
     );
     
-    setShowBottomNav(shouldShowBottomNav);
+    setShowBottomNav(shouldShow);
   }, [pathname]);
 
-  // Function to determine if the current route needs protection
-  const isProtectedRoute = () => {
-    const publicRoutes = ['/', '/login', '/signup', '/password-reset'];
-    return !publicRoutes.some(route => pathname === route || pathname.startsWith(`${route}/`));
-  };
+  // Determine if the current route needs protection
+  const needsProtection = !PUBLIC_ROUTES.some(route => 
+    pathname === route || pathname.startsWith(`${route}/`)
+  );
 
   // Wrap with ProtectedRoute only if the route needs protection
-  const wrappedContent = isProtectedRoute() ? (
+  const wrappedContent = needsProtection ? (
     <ProtectedRoute>{children}</ProtectedRoute>
   ) : (
     children

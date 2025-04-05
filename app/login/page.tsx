@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -13,69 +13,117 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-  const { supabase } = useAuth();
+  const { user, supabase, isLoading: authLoading } = useAuth();
+  const redirectAttemptedRef = useRef(false);
+  
+  // If already authenticated, redirect to home
+  useEffect(() => {
+    // Skip if already redirecting or still loading auth
+    if (redirectAttemptedRef.current || authLoading) return;
+    
+    if (user) {
+      console.log('User already authenticated, redirecting to home');
+      redirectAttemptedRef.current = true;
+      
+      // Use timeout to avoid react state updates during render
+      setTimeout(() => {
+        router.push('/home');
+      }, 100);
+    }
+  }, [user, authLoading, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Prevent submitting while loading or if already redirecting
+    if (isLoading || redirectAttemptedRef.current) return;
+    
     setError(null);
     setIsLoading(true);
 
     try {
-      // Step 1: Sign in with Supabase
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      // Sign in with email and password
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (authError) {
-        console.error('Authentication error:', authError);
-        throw new Error(authError.message);
+      if (error) {
+        console.error('Login error:', error.message);
+        throw new Error(error.message);
       }
 
-      if (!authData?.user?.id) {
-        throw new Error('No user ID returned from authentication');
+      if (!data.user) {
+        throw new Error('No user returned from authentication');
       }
 
-      // Step 2: Check user in the users table
+      console.log('Authentication successful');
+      
+      // Fetch user profile to check if it's complete
       const { data: userData, error: userError } = await supabase
         .from('users')
-        .select('*')
-        .eq('id', authData.user.id)
+        .select('id, name, birthday')
+        .eq('id', data.user.id)
         .single();
-
+      
+      // Mark as redirecting to prevent duplicate redirects
+      redirectAttemptedRef.current = true;
+      
+      // Handle profile completion check
       if (userError) {
-        console.error('User fetch error:', userError);
-        
         if (userError.code === 'PGRST116') {
-          // No user exists in the users table, redirect to profile setup
+          // No user record exists - redirect to profile setup
           toast.info('Please complete your profile setup');
-          router.push(`/profile-setup?userId=${authData.user.id}`);
+          setTimeout(() => {
+            router.push('/profile-setup');
+          }, 100);
           return;
         }
-        
-        throw new Error('Error fetching user data');
-      }
-
-      // Step 3: Check if user has completed their profile
-      if (!userData.name || !userData.birthday) {
-        // User exists but profile is incomplete
-        toast.info('Please complete your profile information');
-        router.push(`/profile-setup?userId=${authData.user.id}`);
+        console.error('Error fetching user profile:', userError);
+      } else if (!userData.name || !userData.birthday) {
+        // Incomplete profile - redirect to profile setup
+        toast.info('Please complete your profile');
+        setTimeout(() => {
+          router.push('/profile-setup');
+        }, 100);
         return;
       }
-
-      // Step 4: Successful login with complete profile
-      toast.success('Successfully signed in');
-      router.push(`/home?userId=${authData.user.id}`);
+      
+      // Success - authenticate and redirect
+      toast.success('Login successful');
+      
+      // Use timeout to avoid React state updates during render
+      setTimeout(() => {
+        router.push('/home');
+      }, 100);
       
     } catch (err) {
       console.error('Login error:', err);
-      setError(err instanceof Error ? err.message : 'An error occurred during sign in');
-      toast.error(err instanceof Error ? err.message : 'Failed to sign in');
+      setError(err instanceof Error ? err.message : 'Login failed');
+      toast.error(err instanceof Error ? err.message : 'Login failed');
+      redirectAttemptedRef.current = false; // Reset redirect flag on error
     } finally {
       setIsLoading(false);
     }
   };
+
+  // If still checking auth state, show loading
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-pulse">Loading...</div>
+      </div>
+    );
+  }
+
+  // If user is already logged in, don't render the form
+  if (user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-pulse">Redirecting to home...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white">
