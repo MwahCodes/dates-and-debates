@@ -7,6 +7,7 @@ import Image from 'next/image';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
+import ProfileImageUpload from '@/components/ProfileImageUpload';
 
 interface UserProfile {
   id: string;
@@ -110,6 +111,16 @@ export default function ProfilePage() {
     }
   };
 
+  // Handle image update
+  const handleImageUpdated = (newImageUrl: string) => {
+    if (profile) {
+      setProfile({
+        ...profile,
+        profile_picture_url: newImageUrl
+      });
+    }
+  };
+
   // Render profile
   return (
     <div className="bg-[#F5F5F5] flex flex-col items-center p-4 pb-20">
@@ -117,20 +128,12 @@ export default function ProfilePage() {
         <div className="bg-white rounded-lg p-6 shadow-sm">
           {/* Profile header */}
           <div className="flex items-center space-x-4">
-            <div className="relative w-20 h-20 rounded-full overflow-hidden bg-gray-200">
-              {profile.profile_picture_url ? (
-                <Image
-                  src={profile.profile_picture_url}
-                  alt={profile.name}
-                  fill
-                  className="object-cover"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center bg-[#6C0002] text-white text-2xl">
-                  {profile.name.charAt(0).toUpperCase()}
-                </div>
-              )}
-            </div>
+            <ProfileImageUpload 
+              profileImageUrl={profile.profile_picture_url || null} 
+              userName={profile.name}
+              userId={profile.id}
+              onImageUpdated={handleImageUpdated}
+            />
             <div>
               <h1 className="text-2xl font-semibold text-[#1A1A1A]">{profile.name}</h1>
               <p className="text-[#666666]">{user?.email || 'No email available'}</p>
