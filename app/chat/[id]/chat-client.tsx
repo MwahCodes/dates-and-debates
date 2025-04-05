@@ -249,7 +249,7 @@ export default function ChatClient({ chatPartnerId }: ChatClientProps): ReactEle
       {/* Messages - Scrollable area with newest messages at the bottom */}
       <div 
         ref={messagesContainerRef}
-        className="flex-1 overflow-y-auto p-4 pb-24"
+        className="flex-1 overflow-y-auto p-4 pb-25"
       >
         <div className="space-y-4 flex flex-col">
           {messages.map((message) => (
@@ -274,6 +274,8 @@ export default function ChatClient({ chatPartnerId }: ChatClientProps): ReactEle
               </div>
             </div>
           ))}
+          {/* Add invisible element at the end to ensure proper scroll space */}
+          <div className="h-10 w-full" />
         </div>
       </div>
 
