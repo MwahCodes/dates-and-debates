@@ -1,3 +1,14 @@
+@import './fonts.css';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  .font-hannari {
+    font-family: 'Hannari', serif;
+  }
+}
+
 @import "tailwindcss";
 
 :root {
