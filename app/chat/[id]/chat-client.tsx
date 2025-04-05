@@ -113,6 +113,22 @@ export default function ChatClient({ chatPartnerId }: ChatClientProps): ReactEle
       })
       .subscribe();
 
+    // Mark messages as read when entering the chat
+    const markMessagesAsRead = async () => {
+      try {
+        await supabase
+          .from('messages')
+          .update({ read_at: new Date().toISOString() })
+          .eq('receiver_id', user.id)
+          .eq('sender_id', chatPartnerId)
+          .is('read_at', null);
+      } catch (error) {
+        console.error('Error marking messages as read:', error);
+      }
+    };
+
+    markMessagesAsRead();
+
     return () => {
       channel.unsubscribe();
     };

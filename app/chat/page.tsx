@@ -111,7 +111,7 @@ export default function ChatPage() {
         event: 'INSERT',
         schema: 'public',
         table: 'messages',
-        filter: `sender_id=eq.${user.id},receiver_id=eq.${user.id}`
+        filter: `or(sender_id.eq.${user.id},receiver_id.eq.${user.id})`
       }, () => {
         fetchChatPartners(); // Refresh the chat list when new messages arrive
       })
