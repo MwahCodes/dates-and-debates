@@ -15,18 +15,23 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const isRootPage = pathname === '/';
+  
+  // Only show bottom nav on these specific pages
+  const showBottomNav = ['/home', '/chat', '/profile'].includes(pathname);
+  
+  // Don't show header on welcome page and auth-related pages
+  const hideHeader = ['/', '/auth', '/signup'].includes(pathname);
 
   return (
     <html lang="en">
       <body className={inter.className}>
         <AuthProvider>
           <div className="flex min-h-screen flex-col bg-white">
-            {!isRootPage && <LogoHeader />}
-            <main className={`flex-1 ${!isRootPage ? 'pt-16 pb-20' : ''}`}>
+            {!hideHeader && <LogoHeader />}
+            <main className={`flex-1 ${!hideHeader ? 'pt-16' : ''} ${showBottomNav ? 'pb-20' : ''}`}>
               {children}
             </main>
-            {!isRootPage && <BottomNavigation />}
+            {showBottomNav && <BottomNavigation />}
           </div>
         </AuthProvider>
       </body>
