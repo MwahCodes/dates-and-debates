@@ -14,6 +14,46 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 
+// MBTI types array
+const MBTI_TYPES = [
+  'INTJ', 'INTP', 'ENTJ', 'ENTP',
+  'INFJ', 'INFP', 'ENFJ', 'ENFP',
+  'ISTJ', 'ISFJ', 'ESTJ', 'ESFJ',
+  'ISTP', 'ISFP', 'ESTP', 'ESFP'
+];
+
+// Generate height options (4'10" to 6'8")
+const generateHeightOptions = () => {
+  const options = [];
+  for (let feet = 4; feet <= 6; feet++) {
+    const maxInches = feet === 6 ? 8 : 11;
+    const startInches = feet === 4 ? 10 : 0;
+    for (let inches = startInches; inches <= maxInches; inches++) {
+      const totalInches = (feet * 12) + inches;
+      options.push({
+        label: `${feet}'${inches}"`,
+        value: totalInches.toString()
+      });
+    }
+  }
+  return options;
+};
+
+// Generate weight options (90 lbs to 300 lbs in increments of 5)
+const generateWeightOptions = () => {
+  const options = [];
+  for (let weight = 90; weight <= 300; weight += 5) {
+    options.push({
+      label: `${weight} lbs`,
+      value: weight.toString()
+    });
+  }
+  return options;
+};
+
+const HEIGHT_OPTIONS = generateHeightOptions();
+const WEIGHT_OPTIONS = generateWeightOptions();
+
 export default function ProfileSetupPage() {
   const [formData, setFormData] = useState({
     name: '',
@@ -38,18 +78,6 @@ export default function ProfileSetupPage() {
     setLoading(true);
 
     try {
-      // Convert height from feet/inches to inches
-      const heightInInches = parseFloat(formData.height);
-      if (isNaN(heightInInches) || heightInInches <= 0) {
-        throw new Error('Please enter a valid height');
-      }
-
-      // Convert weight to number
-      const weight = parseFloat(formData.weight);
-      if (isNaN(weight) || weight <= 0) {
-        throw new Error('Please enter a valid weight');
-      }
-
       // Create user profile
       const { error: profileError } = await supabase
         .from('users')
@@ -58,8 +86,8 @@ export default function ProfileSetupPage() {
           name: formData.name,
           birthday: formData.birthday,
           education_level: formData.education_level,
-          height: heightInInches,
-          weight: weight,
+          height: parseInt(formData.height),
+          weight: parseInt(formData.weight),
           mbti_type: formData.mbti_type,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
@@ -81,8 +109,8 @@ export default function ProfileSetupPage() {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSelectChange = (value: string) => {
-    setFormData(prev => ({ ...prev, education_level: value }));
+  const handleSelectChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
   };
 
   return (
@@ -124,7 +152,7 @@ export default function ProfileSetupPage() {
 
             <div className="space-y-2">
               <h2 className="text-xl text-[#1A1A1A]">My education level is</h2>
-              <Select value={formData.education_level} onValueChange={handleSelectChange}>
+              <Select value={formData.education_level} onValueChange={(value) => handleSelectChange('education_level', value)}>
                 <SelectTrigger className="bg-[#F5F5F5] border-0 text-[#1A1A1A] h-14 text-lg">
                   <SelectValue placeholder="Select education level" />
                 </SelectTrigger>
@@ -140,47 +168,50 @@ export default function ProfileSetupPage() {
 
             <div className="space-y-2">
               <h2 className="text-xl text-[#1A1A1A]">My height is</h2>
-              <Input
-                id="height"
-                name="height"
-                type="number"
-                value={formData.height}
-                onChange={handleChange}
-                placeholder="Enter your height in inches"
-                required
-                min="0"
-                step="0.1"
-                className="bg-[#F5F5F5] border-0 text-[#1A1A1A] placeholder:text-[#666666] h-14 text-lg"
-              />
+              <Select value={formData.height} onValueChange={(value) => handleSelectChange('height', value)}>
+                <SelectTrigger className="bg-[#F5F5F5] border-0 text-[#1A1A1A] h-14 text-lg">
+                  <SelectValue placeholder="Select your height" />
+                </SelectTrigger>
+                <SelectContent>
+                  {HEIGHT_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">
               <h2 className="text-xl text-[#1A1A1A]">My weight is</h2>
-              <Input
-                id="weight"
-                name="weight"
-                type="number"
-                value={formData.weight}
-                onChange={handleChange}
-                placeholder="Enter your weight in pounds"
-                required
-                min="0"
-                step="0.1"
-                className="bg-[#F5F5F5] border-0 text-[#1A1A1A] placeholder:text-[#666666] h-14 text-lg"
-              />
+              <Select value={formData.weight} onValueChange={(value) => handleSelectChange('weight', value)}>
+                <SelectTrigger className="bg-[#F5F5F5] border-0 text-[#1A1A1A] h-14 text-lg">
+                  <SelectValue placeholder="Select your weight" />
+                </SelectTrigger>
+                <SelectContent>
+                  {WEIGHT_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">
               <h2 className="text-xl text-[#1A1A1A]">My MBTI type is</h2>
-              <Input
-                id="mbti_type"
-                name="mbti_type"
-                value={formData.mbti_type}
-                onChange={handleChange}
-                placeholder="e.g., INTJ"
-                maxLength={4}
-                className="bg-[#F5F5F5] border-0 text-[#1A1A1A] placeholder:text-[#666666] h-14 text-lg"
-              />
+              <Select value={formData.mbti_type} onValueChange={(value) => handleSelectChange('mbti_type', value)}>
+                <SelectTrigger className="bg-[#F5F5F5] border-0 text-[#1A1A1A] h-14 text-lg">
+                  <SelectValue placeholder="Select your MBTI type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {MBTI_TYPES.map((type) => (
+                    <SelectItem key={type} value={type}>
+                      {type}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <Button
